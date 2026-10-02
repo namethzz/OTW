@@ -1,0 +1,159 @@
+@using Project.Models.Db
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "เขียนรีวิวสินค้า";
+
+    var order   = ViewBag.Order   as Order;
+    var product = ViewBag.Product as Product;
+}
+
+<div class="container py-5">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-4 small">
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none">หน้าหลัก</a>
+        <span class="mx-2 text-muted">/</span>
+        <a asp-controller="Account" asp-action="Index" class="text-decoration-none">คำสั่งซื้อของฉัน</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-muted">เขียนรีวิว</span>
+    </nav>
+
+    @if (TempData["ReviewError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4">
+            @TempData["ReviewError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="mx-auto" style="max-width:680px">
+
+        <h2 class="fw-bold mb-1">เขียนรีวิวสินค้า</h2>
+        <p class="text-muted mb-4">ออเดอร์ #@order?.OrderId</p>
+
+        <!-- สินค้าที่จะรีวิว -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-light rounded-3 flex-shrink-0"
+                         style="width:80px;height:80px;overflow:hidden">
+                        @if (!string.IsNullOrEmpty(product?.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" class="w-100 h-100"
+                                 style="object-fit:contain;padding:8px" />
+                        }
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-5">@product?.ProductName</div>
+                        <div class="text-muted small">@product?.Category?.CategoryName</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ฟอร์มรีวิว -->
+        <form asp-controller="Review" asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="orderId"   value="@order?.OrderId" />
+            <input type="hidden" name="productId" value="@product?.ProductId" />
+            <input type="hidden" name="rating"    id="ratingInput" value="0" />
+
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+
+                    <!-- ให้คะแนนดาว -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold mb-3">
+                            ให้คะแนนสินค้า <span class="text-danger">*</span>
+                        </label>
+                        <div class="d-flex gap-2 align-items-center" id="starContainer">
+                            @for (int s = 1; s <= 5; s++)
+                            {
+                                <span class="star" data-value="@s"
+                                      style="font-size:40px;cursor:pointer;color:#d1d5db;transition:color .15s;user-select:none">
+                                    ★
+                                </span>
+                            }
+                            <span id="ratingLabel" class="ms-2 text-muted small"></span>
+                        </div>
+                        <div id="ratingError" class="text-danger small mt-1" style="display:none">
+                            กรุณาให้คะแนนก่อนส่งรีวิว
+                        </div>
+                    </div>
+
+                    <!-- ความคิดเห็น -->
+                    <div>
+                        <label class="form-label fw-semibold">ความคิดเห็น</label>
+                        <textarea name="comment" rows="4" class="form-control rounded-3"
+                                  placeholder="บอกเล่าประสบการณ์การใช้งาน รสชาติ ความคุ้มค่า หรือการจัดส่ง..."></textarea>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end">
+                <a asp-controller="Account" asp-action="Index"
+                   class="btn btn-outline-secondary rounded-3 px-4">
+                    ยกเลิก
+                </a>
+                <button type="submit" id="submitBtn"
+                        class="btn btn-dark rounded-3 px-5 fw-semibold">
+                    <i class="ti ti-send me-2"></i>ส่งรีวิว
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const stars      = document.querySelectorAll('.star');
+const ratingInput = document.getElementById('ratingInput');
+const ratingLabel = document.getElementById('ratingLabel');
+const ratingError = document.getElementById('ratingError');
+
+const labels = ['', 'แย่มาก', 'พอใช้', 'ปานกลาง', 'ดี', 'ดีมาก! 🎉'];
+
+// hover
+stars.forEach(star => {
+    star.addEventListener('mouseenter', () => {
+        const val = parseInt(star.dataset.value);
+        highlightStars(val);
+        ratingLabel.textContent = labels[val];
+    });
+});
+
+document.getElementById('starContainer').addEventListener('mouseleave', () => {
+    const current = parseInt(ratingInput.value) || 0;
+    highlightStars(current);
+    ratingLabel.textContent = current > 0 ? labels[current] : '';
+});
+
+// click
+stars.forEach(star => {
+    star.addEventListener('click', () => {
+        const val = parseInt(star.dataset.value);
+        ratingInput.value = val;
+        highlightStars(val);
+        ratingLabel.textContent = labels[val];
+        ratingError.style.display = 'none';
+    });
+});
+
+function highlightStars(val) {
+    stars.forEach(s => {
+        s.style.color = parseInt(s.dataset.value) <= val ? '#f59e0b' : '#d1d5db';
+    });
+}
+
+// validate ก่อน submit
+document.querySelector('form').addEventListener('submit', e => {
+    if (parseInt(ratingInput.value) < 1) {
+        e.preventDefault();
+        ratingError.style.display = 'block';
+        document.getElementById('starContainer').scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+}

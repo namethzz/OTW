@@ -1,0 +1,360 @@
+@using Project.Models.Db
+@{
+    ViewData["Title"] = "คำขอคืน / เปลี่ยนสินค้า";
+    var myReturns    = ViewBag.MyReturns    as List<Return> ?? new List<Return>();
+    var relatedOrders = ViewBag.RelatedOrders as List<Order> ?? new List<Order>();
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+    .mr-page { font-family: 'Sora', system-ui, sans-serif; padding: 48px 0 80px; }
+
+    :root {
+        --s:#ffffff; --s2:#f8f8fa; --bd:#ebebed;
+        --t1:#0d0d10; --t2:#6b6b80; --t3:#b0b0c0;
+        --pending-bg:#fffbeb; --pending-tx:#92400e; --pending-dot:#f59e0b;
+        --approved-bg:#f0fdf4; --approved-tx:#166534; --approved-dot:#22c55e;
+        --rejected-bg:#fff1f2; --rejected-tx:#9f1239; --rejected-dot:#f43f5e;
+        --r:16px; --accent:#111113;
+    }
+
+    /* Header */
+    .mr-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; gap:16px; flex-wrap:wrap; }
+    .mr-title { font-size:1.35rem; font-weight:700; color:var(--t1); letter-spacing:-.025em; margin:0 0 4px; }
+    .mr-sub   { font-size:.825rem; color:var(--t2); margin:0; }
+    .mr-back-btn {
+        display:inline-flex; align-items:center; gap:7px;
+        border:1px solid var(--bd); border-radius:var(--r);
+        padding:9px 18px; font-size:.8125rem; font-weight:600;
+        font-family:'Sora',sans-serif; color:var(--t2);
+        text-decoration:none; background:var(--s);
+        transition:border-color .15s, color .15s, background .15s;
+        white-space:nowrap;
+    }
+    .mr-back-btn:hover { border-color:var(--accent); color:var(--t1); background:var(--s2); }
+
+    /* Empty state */
+    .mr-empty {
+        background:var(--s); border:1px solid var(--bd);
+        border-radius:20px; text-align:center; padding:72px 24px;
+    }
+    .mr-empty-icon {
+        width:64px; height:64px; border-radius:50%;
+        background:var(--s2); margin:0 auto 18px;
+        display:flex; align-items:center; justify-content:center; color:var(--t3);
+    }
+    .mr-empty h4 { font-size:1rem; font-weight:700; color:var(--t1); margin:0 0 8px; }
+    .mr-empty p  { font-size:.8375rem; color:var(--t2); margin:0 0 20px; line-height:1.7; }
+    .mr-empty-btn {
+        display:inline-flex; align-items:center; gap:7px;
+        background:var(--accent); color:#fff; border:none;
+        border-radius:var(--r); padding:11px 24px;
+        font-size:.875rem; font-weight:700;
+        font-family:'Sora',sans-serif; text-decoration:none;
+        transition:background .15s;
+    }
+    .mr-empty-btn:hover { background:#333; color:#fff; }
+
+    /* Return card */
+    .mr-card {
+        background:var(--s); border:1px solid var(--bd);
+        border-radius:20px; overflow:hidden;
+        margin-bottom:16px;
+        transition:box-shadow .2s;
+        animation:mrIn .25s ease both;
+    }
+    .mr-card:hover { box-shadow:0 6px 28px rgba(0,0,0,.07); }
+    @@keyframes mrIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .mr-card:nth-child(1){animation-delay:.04s}
+    .mr-card:nth-child(2){animation-delay:.08s}
+    .mr-card:nth-child(3){animation-delay:.12s}
+    .mr-card:nth-child(n+4){animation-delay:.16s}
+
+    /* Card header bar */
+    .mr-card-head {
+        display:flex; align-items:center; justify-content:space-between;
+        flex-wrap:wrap; gap:10px;
+        padding:14px 22px; background:var(--s2);
+        border-bottom:1px solid var(--bd);
+    }
+    .mr-card-head-left { display:flex; align-items:center; gap:10px; }
+    .mr-req-id { font-size:.8rem; font-weight:700; color:var(--t2); }
+    .mr-order-link {
+        font-size:.78rem; font-weight:600; color:#6366f1;
+        text-decoration:none; display:flex; align-items:center; gap:4px;
+        transition:color .15s;
+    }
+    .mr-order-link:hover { color:#4f46e5; }
+    .mr-card-date { font-size:.74rem; color:var(--t3); }
+
+    /* Status badge */
+    .mr-status {
+        display:inline-flex; align-items:center; gap:5px;
+        padding:4px 12px; border-radius:99px;
+        font-size:.72rem; font-weight:700; white-space:nowrap;
+    }
+    .mr-sdot { width:6px; height:6px; border-radius:50%; }
+
+    /* Card body */
+    .mr-card-body { display:grid; grid-template-columns:1fr 260px; gap:0; }
+
+    /* Products side */
+    .mr-products { padding:20px 22px; border-right:1px solid var(--bd); }
+    .mr-section-label {
+        font-size:.69rem; font-weight:700; text-transform:uppercase;
+        letter-spacing:.07em; color:var(--t3); margin-bottom:12px;
+    }
+    .mr-prod-item {
+        display:flex; align-items:center; gap:11px;
+        padding:10px 0; border-bottom:1px solid var(--bd);
+    }
+    .mr-prod-item:last-child { border-bottom:0; }
+    .mr-prod-thumb {
+        width:48px; height:48px; border-radius:10px;
+        background:var(--s2); border:1px solid var(--bd);
+        display:flex; align-items:center; justify-content:center;
+        overflow:hidden; flex-shrink:0;
+    }
+    .mr-prod-thumb img { width:100%; height:100%; object-fit:contain; padding:4px; }
+    .mr-prod-name { font-size:.8rem; font-weight:600; color:var(--t1); margin-bottom:2px; }
+    .mr-prod-meta { font-size:.74rem; color:var(--t3); }
+
+    /* Detail side */
+    .mr-detail { padding:20px 22px; background:var(--s2); }
+    .mr-detail-row { margin-bottom:12px; }
+    .mr-detail-key { font-size:.72rem; font-weight:600; color:var(--t3); margin-bottom:3px; text-transform:uppercase; letter-spacing:.04em; }
+    .mr-detail-val { font-size:.8375rem; font-weight:600; color:var(--t1); }
+
+    /* Status block */
+    .mr-status-block {
+        border-radius:10px; padding:12px 14px;
+        display:flex; align-items:flex-start; gap:9px;
+        margin-top:14px;
+    }
+    .mr-status-block-title { font-size:.8rem; font-weight:700; margin-bottom:2px; }
+    .mr-status-block-desc  { font-size:.74rem; line-height:1.5; }
+
+    /* Footer */
+    .mr-card-foot {
+        padding:12px 22px;
+        border-top:1px solid var(--bd);
+        display:flex; justify-content:flex-end;
+    }
+    .mr-view-btn {
+        display:inline-flex; align-items:center; gap:6px;
+        font-size:.78rem; font-weight:600; color:var(--t2);
+        text-decoration:none; padding:6px 14px;
+        border:1px solid var(--bd); border-radius:8px;
+        transition:all .15s; background:var(--s);
+    }
+    .mr-view-btn:hover { border-color:var(--accent); color:var(--t1); }
+
+    @@media(max-width:768px) {
+        .mr-card-body { grid-template-columns:1fr; }
+        .mr-products  { border-right:0; border-bottom:1px solid var(--bd); }
+    }
+</style>
+
+<div class="container mr-page">
+
+    <!-- Header -->
+    <div class="mr-header">
+        <div>
+            <h1 class="mr-title">คำขอคืน / เปลี่ยนสินค้า</h1>
+            <p class="mr-sub">ดูสถานะคำขอคืนและเปลี่ยนสินค้าของคุณ</p>
+        </div>
+        <a asp-controller="Account" asp-action="Index" class="mr-back-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            คำสั่งซื้อของฉัน
+        </a>
+    </div>
+
+    @if (!myReturns.Any())
+    {
+        <div class="mr-empty">
+            <div class="mr-empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+            </div>
+            <h4>ยังไม่มีคำขอ</h4>
+            <p>
+                หากต้องการขอคืนหรือเปลี่ยนสินค้า<br/>
+                ให้ไปที่รายละเอียดคำสั่งซื้อ<br/>
+                <span style="font-size:.78rem;color:var(--t3);">(เฉพาะออเดอร์ที่จัดส่งสำเร็จแล้วเท่านั้น)</span>
+            </p>
+            <a asp-controller="Account" asp-action="Index" class="mr-empty-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                ดูคำสั่งซื้อของฉัน
+            </a>
+        </div>
+    }
+    else
+    {
+        @foreach (var ret in myReturns)
+        {
+            var order = relatedOrders.FirstOrDefault(o => o.OrderId == ret.OrderId);
+
+            var (sBg, sTx, sDot, sLabel, sBlockBg, sBlockTx, sDesc) = ret.Status switch {
+                1 => (
+                    "var(--approved-bg)", "var(--approved-tx)", "var(--approved-dot)",
+                    "อนุมัติแล้ว",
+                    "#f0fdf4", "#166534",
+                    "คำขอได้รับการอนุมัติแล้ว กรุณารอการดำเนินการต่อไป"
+                ),
+                2 => (
+                    "var(--rejected-bg)", "var(--rejected-tx)", "var(--rejected-dot)",
+                    "ไม่อนุมัติ",
+                    "#fff1f2", "#9f1239",
+                    "คำขอไม่ได้รับการอนุมัติ สามารถติดต่อแอดมินได้"
+                ),
+                _ => (
+                    "var(--pending-bg)", "var(--pending-tx)", "var(--pending-dot)",
+                    "รอตรวจสอบ",
+                    "#fffbeb", "#92400e",
+                    "ทีมงานได้รับคำขอแล้ว กำลังตรวจสอบ"
+                )
+            };
+
+            <div class="mr-card">
+
+                <!-- Card header -->
+                <div class="mr-card-head">
+                    <div class="mr-card-head-left">
+                        <span class="mr-req-id">คำขอ #@ret.ReturnId</span>
+                        <a asp-controller="Account" asp-action="OrderDetail"
+                           asp-route-id="@ret.OrderId" class="mr-order-link">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            ออเดอร์ #@ret.OrderId
+                        </a>
+                        <span class="mr-card-date">@ret.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <span class="mr-status" style="background:@sBg;color:@sTx;">
+                        <span class="mr-sdot" style="background:@sDot;"></span>
+                        @sLabel
+                    </span>
+                </div>
+
+                <!-- Card body -->
+                <div class="mr-card-body">
+
+                    <!-- สินค้า -->
+                    <div class="mr-products">
+                        <div class="mr-section-label">สินค้าในออเดอร์</div>
+                        @if (order?.OrderDetails != null && order.OrderDetails.Any())
+                        {
+                            @foreach (var item in order.OrderDetails)
+                            {
+                                <div class="mr-prod-item">
+                                    <div class="mr-prod-thumb">
+                                        @if (!string.IsNullOrWhiteSpace(item.Product?.ImageUrl))
+                                        {
+                                            <img src="@item.Product.ImageUrl" alt="@item.Product.ProductName" />
+                                        }
+                                        else
+                                        {
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                <polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                        }
+                                    </div>
+                                    <div>
+                                        <div class="mr-prod-name">@(item.Product?.ProductName ?? "—")</div>
+                                        <div class="mr-prod-meta">@item.Quantity ชิ้น · ฿@item.Price.ToString("N0")</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div style="font-size:.8rem;color:var(--t3);padding:12px 0;">ไม่พบรายการสินค้า</div>
+                        }
+                    </div>
+
+                    <!-- รายละเอียดคำขอ -->
+                    <div class="mr-detail">
+                        <div class="mr-section-label">รายละเอียดคำขอ</div>
+
+                        <div class="mr-detail-row">
+                            <div class="mr-detail-key">ประเภท</div>
+                            <div class="mr-detail-val">@ret.ReturnType</div>
+                        </div>
+                        <div class="mr-detail-row">
+                            <div class="mr-detail-key">เหตุผล</div>
+                            <div class="mr-detail-val">@ret.Reason</div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(ret.Note))
+                        {
+                            <div class="mr-detail-row">
+                                <div class="mr-detail-key">หมายเหตุ</div>
+                                <div class="mr-detail-val" style="font-weight:400;color:var(--t2);font-size:.8rem;">@ret.Note</div>
+                            </div>
+                        }
+
+                        <!-- Status block -->
+                        <div class="mr-status-block" style="background:@sBlockBg;">
+                            @if (ret.Status == 0)
+                            {
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="@sBlockTx"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            }
+                            else if (ret.Status == 1)
+                            {
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="@sBlockTx"
+                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="@sBlockTx"
+                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;">
+                                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                                </svg>
+                            }
+                            <div>
+                                <div class="mr-status-block-title" style="color:@sBlockTx;">@sLabel</div>
+                                <div class="mr-status-block-desc" style="color:@sBlockTx;opacity:.8;">@sDesc</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Card footer -->
+                <div class="mr-card-foot">
+                    <a asp-controller="Account" asp-action="OrderDetail"
+                       asp-route-id="@ret.OrderId" class="mr-view-btn">
+                        ดูรายละเอียดออเดอร์
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                </div>
+
+            </div>
+        }
+    }
+
+</div>

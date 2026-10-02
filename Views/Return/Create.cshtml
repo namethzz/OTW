@@ -1,0 +1,637 @@
+@using Project.Models.Db
+@{
+    ViewData["Title"] = "ยื่นคำขอคืนสินค้า";
+
+    var order = ViewBag.Order as Order;
+    var deadlineDate = ViewBag.DeadlineDate as string ?? "-";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<div class="rc-page">
+
+    @if (TempData["ReturnError"] != null)
+    {
+        <div class="rc-error-banner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            @TempData["ReturnError"]
+            <button onclick="this.parentElement.remove()" class="rc-error-close">×</button>
+        </div>
+    }
+
+    @if (order == null)
+    {
+        <div class="rc-error-banner">ไม่พบข้อมูลคำสั่งซื้อ</div>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav class="rc-breadcrumb">
+            <a asp-controller="Home" asp-action="Index">หน้าหลัก</a>
+            <span class="sep">›</span>
+            <a asp-controller="Account" asp-action="Index">บัญชีของฉัน</a>
+            <span class="sep">›</span>
+            <span>ยื่นคืนสินค้า</span>
+        </nav>
+
+        <div class="rc-wrap">
+
+            <!-- Left column -->
+            <div class="rc-left">
+
+                <!-- Header -->
+                <div class="rc-header">
+                    <div class="rc-header-eyebrow">ออเดอร์ #@order.OrderId</div>
+                    <h1 class="rc-title">ยื่นคำขอ<br/></h1>
+                    <div class="rc-deadline">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        ยื่นได้ถึง <strong>@deadlineDate</strong>
+                    </div>
+                </div>
+
+                <!-- Eligible badge -->
+                <div class="rc-eligible">
+                    <div class="rc-eligible-dot"></div>
+                    <div>
+                        <div class="rc-eligible-title">คำสั่งซื้อนี้พร้อมยื่นคำขอแล้ว</div>
+                        <div class="rc-eligible-sub">ออเดอร์จัดส่งสำเร็จ — สามารถเลือกขอคืนเงินหรือเปลี่ยนสินค้าได้</div>
+                    </div>
+                </div>
+
+                <!-- Order items -->
+                <div class="rc-section">
+                    <div class="rc-section-label">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        สินค้าในออเดอร์
+                    </div>
+                    <div class="rc-items">
+                        @if (order.OrderDetails != null && order.OrderDetails.Any())
+                        {
+                            @foreach (var item in order.OrderDetails)
+                            {
+                                <div class="rc-item">
+                                    <div class="rc-item-img">
+                                        @if (!string.IsNullOrWhiteSpace(item.Product?.ImageUrl))
+                                        {
+                                            <img src="@item.Product.ImageUrl" alt="@item.Product?.ProductName" />
+                                        }
+                                        else
+                                        {
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        }
+                                    </div>
+                                    <div class="rc-item-info">
+                                        <div class="rc-item-name">@(item.Product?.ProductName ?? "-")</div>
+                                        <div class="rc-item-meta">฿@item.Price.ToString("N0") × @item.Quantity ชิ้น</div>
+                                    </div>
+                                    <div class="rc-item-total">฿@((item.Price * item.Quantity).ToString("N0"))</div>
+                                </div>
+                            }
+                            <div class="rc-items-note">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                คำขอนี้จะครอบคลุมสินค้าทุกรายการในออเดอร์
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right column: form -->
+            <div class="rc-right">
+                <form asp-controller="Return" asp-action="Create" method="post" enctype="multipart/form-data" id="returnForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="orderId" value="@order.OrderId" />
+
+                    <!-- Return type -->
+                    <div class="rc-card">
+                        <div class="rc-card-title">ประเภทการคืน</div>
+                        <div class="rc-type-grid">
+
+                            <label class="rc-type-card">
+                                <input type="radio" name="returnType" value="คืนเงิน" class="rc-type-radio" required />
+                                <div class="rc-type-inner">
+                                    <div class="rc-type-icon rc-type-icon--yellow">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </div>
+                                    <div class="rc-type-text">
+                                        <div class="rc-type-name">คืนเงิน</div>
+                                        <div class="rc-type-desc">รับเงินคืนเข้าบัญชีภายใน 3–5 วันทำการ</div>
+                                    </div>
+                                    <div class="rc-type-check">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="rc-type-card">
+                                <input type="radio" name="returnType" value="เปลี่ยนสินค้า" class="rc-type-radio" required />
+                                <div class="rc-type-inner">
+                                    <div class="rc-type-icon rc-type-icon--blue">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                                    </div>
+                                    <div class="rc-type-text">
+                                        <div class="rc-type-name">เปลี่ยนสินค้า</div>
+                                        <div class="rc-type-desc">จัดส่งสินค้าใหม่ให้ภายใน 2–4 วันทำการ</div>
+                                    </div>
+                                    <div class="rc-type-check">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </div>
+                                </div>
+                            </label>
+
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="rc-card">
+                        <div class="rc-card-title">รายละเอียดคำขอ</div>
+
+                        <div class="rc-field">
+                            <label class="rc-label">เหตุผลหลัก <span class="rc-required">*</span></label>
+                            <div class="rc-select-wrap">
+                                <select name="reason" class="rc-select" required>
+                                    <option value="">เลือกเหตุผล...</option>
+                                    <option value="ได้รับสินค้าผิด">ได้รับสินค้าผิด</option>
+                                    <option value="สินค้าเสียหาย">สินค้าเสียหาย</option>
+                                    <option value="สินค้าไม่ตรงตามที่สั่ง">สินค้าไม่ตรงตามที่สั่ง</option>
+                                    <option value="สินค้าไม่สมบูรณ์">สินค้าไม่สมบูรณ์</option>
+                                    <option value="อื่น ๆ">อื่น ๆ</option>
+                                </select>
+                                <svg class="rc-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                        </div>
+
+                        <div class="rc-field">
+                            <label class="rc-label">หมายเหตุเพิ่มเติม</label>
+                            <textarea name="note" rows="4" class="rc-textarea" placeholder="อธิบายรายละเอียดเพิ่มเติม เช่น จุดที่เสียหาย หรือสินค้าที่ได้รับไม่ตรงกับที่สั่ง..."></textarea>
+                        </div>
+
+                        <div class="rc-field">
+                            <label class="rc-label">แนบรูปหลักฐาน</label>
+                            <div class="rc-upload" id="uploadZone">
+                                <input type="file" name="image" id="imageInput" accept=".jpg,.jpeg,.png" class="rc-upload-input" />
+                                <div class="rc-upload-ui" id="uploadUI">
+                                    <div class="rc-upload-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    </div>
+                                    <div class="rc-upload-text">วางไฟล์หรือ <span class="rc-upload-link">เลือกไฟล์</span></div>
+                                    <div class="rc-upload-hint">JPG, JPEG, PNG · สูงสุด 5 MB</div>
+                                </div>
+                                <div class="rc-upload-preview" id="uploadPreview" style="display:none">
+                                    <img id="previewImg" src="" alt="preview" />
+                                    <button type="button" class="rc-upload-clear" onclick="clearImage()">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="rc-actions">
+                        <a asp-controller="Account" asp-action="Index" class="rc-btn-back">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            ย้อนกลับ
+                        </a>
+                        <button type="submit" class="rc-btn-submit">
+                            ยืนยันการส่งคำขอ
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    }
+</div>
+
+<style>
+/* ── Base ── */
+.rc-page {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    color: #111;
+}
+
+/* Breadcrumb */
+.rc-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .78rem;
+    color: #999;
+    margin-bottom: 36px;
+}
+.rc-breadcrumb a { color: #999; text-decoration: none; transition: color .15s; }
+.rc-breadcrumb a:hover { color: #111; }
+.rc-breadcrumb .sep { color: #ddd; }
+
+/* Error banner */
+.rc-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff5f5;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: .875rem;
+    color: #dc2626;
+    margin-bottom: 24px;
+}
+.rc-error-close {
+    background: none; border: none; color: #dc2626;
+    font-size: 1.1rem; cursor: pointer; margin-left: auto; line-height: 1;
+}
+
+/* ── Two-column layout ── */
+.rc-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* ── Left ── */
+.rc-header { margin-bottom: 28px; }
+.rc-header-eyebrow {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 10px;
+}
+.rc-title {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 2.4rem;
+    line-height: 1.15;
+    font-weight: 400;
+    color: #111;
+    margin: 0 0 14px;
+}
+.rc-title em { font-style: italic; color: #555; }
+.rc-deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .8rem;
+    color: #777;
+    background: #f5f5f5;
+    border-radius: 20px;
+    padding: 6px 14px;
+}
+.rc-deadline strong { color: #333; }
+
+/* Eligible badge */
+.rc-eligible {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 32px;
+}
+.rc-eligible-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px #dcfce7;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.rc-eligible-title { font-size: .875rem; font-weight: 600; color: #166534; margin-bottom: 3px; }
+.rc-eligible-sub { font-size: .78rem; color: #4ade80; }
+
+/* Section label */
+.rc-section-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #aaa;
+    margin-bottom: 14px;
+}
+
+/* Order items */
+.rc-items {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+.rc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f7f7f7;
+    transition: background .15s;
+}
+.rc-item:last-of-type { border-bottom: none; }
+.rc-item:hover { background: #fafafa; }
+.rc-item-img {
+    width: 60px; height: 60px;
+    background: #f8f8f8;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.rc-item-img img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.rc-item-info { flex: 1; min-width: 0; }
+.rc-item-name { font-size: .85rem; font-weight: 500; color: #111; margin-bottom: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-item-meta { font-size: .75rem; color: #aaa; }
+.rc-item-total { font-size: .875rem; font-weight: 600; color: #333; flex-shrink: 0; }
+.rc-items-note {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 16px;
+    font-size: .75rem;
+    color: #bbb;
+    border-top: 1px solid #f5f5f5;
+    background: #fafafa;
+}
+
+/* ── Right: Cards ── */
+.rc-card {
+    background: #fff;
+    border: 1px solid #efefef;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.04);
+}
+.rc-card-title {
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #aaa;
+    margin-bottom: 18px;
+}
+
+/* Return type */
+.rc-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rc-type-card { cursor: pointer; }
+.rc-type-radio { display: none; }
+.rc-type-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border: 1.5px solid #efefef;
+    border-radius: 14px;
+    background: #fafafa;
+    transition: all .2s;
+    position: relative;
+    height: 100%;
+}
+.rc-type-card:hover .rc-type-inner {
+    border-color: #d0d0d0;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+.rc-type-radio:checked + .rc-type-inner {
+    border-color: #111;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+}
+.rc-type-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rc-type-icon--yellow { background: #fef9c3; color: #ca8a04; }
+.rc-type-icon--blue   { background: #eff6ff; color: #2563eb; }
+.rc-type-name { font-size: .9rem; font-weight: 600; color: #111; margin-bottom: 3px; }
+.rc-type-desc { font-size: .75rem; color: #999; line-height: 1.4; }
+.rc-type-check {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .2s;
+}
+.rc-type-radio:checked + .rc-type-inner .rc-type-check { opacity: 1; }
+
+/* Fields */
+.rc-field { margin-bottom: 18px; }
+.rc-field:last-child { margin-bottom: 0; }
+.rc-label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+}
+.rc-required { color: #ef4444; }
+
+.rc-select-wrap { position: relative; }
+.rc-select {
+    width: 100%;
+    appearance: none;
+    border: 1.5px solid #efefef;
+    border-radius: 12px;
+    padding: 11px 38px 11px 14px;
+    font-size: .875rem;
+    font-family: 'DM Sans', sans-serif;
+    color: #111;
+    background: #fafafa;
+    outline: none;
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+}
+.rc-select:focus { border-color: #111; background: #fff; }
+.rc-select-arrow {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #aaa;
+}
+
+.rc-textarea {
+    width: 100%;
+    border: 1.5px solid #efefef;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: .875rem;
+    font-family: 'DM Sans', sans-serif;
+    color: #111;
+    background: #fafafa;
+    outline: none;
+    resize: vertical;
+    transition: border-color .2s, background .2s;
+    line-height: 1.6;
+}
+.rc-textarea:focus { border-color: #111; background: #fff; }
+.rc-textarea::placeholder { color: #ccc; }
+
+/* Upload zone */
+.rc-upload {
+    border: 1.5px dashed #e0e0e0;
+    border-radius: 14px;
+    background: #fafafa;
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+.rc-upload:hover { border-color: #aaa; background: #f5f5f5; }
+.rc-upload-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+.rc-upload-ui {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 28px 20px;
+}
+.rc-upload-icon {
+    width: 44px; height: 44px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    margin-bottom: 4px;
+}
+.rc-upload-text { font-size: .85rem; color: #777; }
+.rc-upload-link { color: #111; font-weight: 600; text-decoration: underline; }
+.rc-upload-hint { font-size: .75rem; color: #bbb; }
+.rc-upload-preview {
+    position: relative;
+    width: 100%;
+    max-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}
+.rc-upload-preview img {
+    max-height: 180px;
+    max-width: 100%;
+    border-radius: 10px;
+    object-fit: contain;
+}
+.rc-upload-clear {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.5);
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    line-height: 1;
+}
+
+/* Actions */
+.rc-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+}
+.rc-btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 18px;
+    border: 1.5px solid #e4e4e4;
+    border-radius: 12px;
+    font-size: .875rem;
+    font-weight: 500;
+    color: #666;
+    text-decoration: none;
+    transition: all .2s;
+}
+.rc-btn-back:hover { border-color: #bbb; color: #111; background: #f8f8f8; }
+.rc-btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: #111;
+    border: none;
+    border-radius: 12px;
+    font-size: .9rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: background .2s, transform .15s;
+    font-family: 'DM Sans', sans-serif;
+}
+.rc-btn-submit:hover { background: #333; transform: translateY(-1px); }
+.rc-btn-submit:active { transform: translateY(0); }
+
+/* Responsive */
+@@media (max-width: 860px) {
+    .rc-wrap { grid-template-columns: 1fr; gap: 28px; }
+    .rc-title { font-size: 1.9rem; }
+}
+@@media (max-width: 500px) {
+    .rc-type-grid { grid-template-columns: 1fr; }
+    .rc-actions { flex-direction: column-reverse; }
+    .rc-btn-back, .rc-btn-submit { width: 100%; justify-content: center; }
+}
+</style>
+
+@section Scripts {
+<script>
+    // Image preview
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('uploadUI').style.display = 'none';
+            document.getElementById('uploadPreview').style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function clearImage() {
+        document.getElementById('imageInput').value = '';
+        document.getElementById('uploadUI').style.display = 'flex';
+        document.getElementById('uploadPreview').style.display = 'none';
+    }
+</script>
+}

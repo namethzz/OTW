@@ -1,0 +1,233 @@
+@model List<Project.Models.Db.Order>
+
+@{
+    ViewData["Title"] = "คำสั่งซื้อทั้งหมด";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var pendingCount = Model.Count(o => o.OrderStatus == 1);
+    var shippingCount = Model.Count(o => o.OrderStatus == 2);
+    var successCount = Model.Count(o => o.OrderStatus == 3);
+}
+
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1">คำสั่งซื้อทั้งหมด</h2>
+        <p class="text-muted mb-0">ตรวจสอบและจัดการสถานะคำสั่งซื้อ</p>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 stat-card stat-pending h-100">
+                <div class="card-body">
+                    <div class="small text-muted mb-2">รอดำเนินการ</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="fw-bold mb-0">@pendingCount</h3>
+                        <div class="stat-icon bg-warning-subtle text-warning">
+                            <i class="ti ti-clock-hour-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 stat-card stat-shipping h-100">
+                <div class="card-body">
+                    <div class="small text-muted mb-2">กำลังจัดส่ง</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="fw-bold mb-0">@shippingCount</h3>
+                        <div class="stat-icon bg-primary-subtle text-primary">
+                            <i class="ti ti-truck-delivery"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 stat-card stat-success h-100">
+                <div class="card-body">
+                    <div class="small text-muted mb-2">สำเร็จ</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="fw-bold mb-0">@successCount</h3>
+                        <div class="stat-icon bg-success-subtle text-success">
+                            <i class="ti ti-circle-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-bold mb-0">รายการคำสั่งซื้อ</h5>
+            </div>
+            <span class="badge bg-dark rounded-pill px-3 py-2">@Model.Count รายการ</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 admin-order-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>#Order</th>
+                        <th>ลูกค้า</th>
+                        <th>ยอดสุทธิ</th>
+                        <th>โปรโมชั่น</th>
+                        <th>วันที่สั่ง</th>
+                        <th>สถานะ</th>
+                        <th class="text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var order in Model)
+                        {
+                            <tr>
+                                <td class="fw-semibold">#@order.OrderId</td>
+
+                                <td>
+                                    <div class="fw-semibold">@order.User?.FullName</div>
+                                    <div class="small text-muted">@order.User?.Email</div>
+                                </td>
+
+                                <td class="fw-semibold">฿@order.TotalPrice.ToString("N2")</td>
+
+                                <td>
+                                    @if (order.Promotion != null)
+                                    {
+                                        <span class="badge rounded-pill text-bg-light border">@order.Promotion.PromoCode</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <div>@string.Format("{0:dd/MM/yyyy}", order.OrderDate)</div>
+                                    <div class="small text-muted">@string.Format("{0:HH:mm}", order.OrderDate)</div>
+                                </td>
+
+                                <td>
+                                    @if (order.OrderStatus == 1)
+                                    {
+                                        <span class="badge rounded-pill bg-warning text-dark px-3 py-2">รอดำเนินการ</span>
+                                    }
+                                    else if (order.OrderStatus == 2)
+                                    {
+                                        <span class="badge rounded-pill bg-primary px-3 py-2">กำลังจัดส่ง</span>
+                                    }
+                                    else if (order.OrderStatus == 3)
+                                    {
+                                        <span class="badge rounded-pill bg-success px-3 py-2">จัดส่งสำเร็จ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill bg-secondary px-3 py-2">ไม่ทราบสถานะ</span>
+                                    }
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                                        <a asp-controller="Admin"
+                                           asp-action="OrderDetail"
+                                           asp-route-id="@order.OrderId"
+                                           class="btn btn-sm btn-outline-dark rounded-3 px-3">
+                                            <i class="ti ti-eye me-1"></i> ดูรายละเอียด
+                                        </a>
+
+                                        @if (order.OrderStatus == 1)
+                                        {
+                                            <form asp-controller="Admin" asp-action="UpdateOrderStatus" method="post" class="d-inline">
+                                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                                <input type="hidden" name="status" value="2" />
+                                                <button type="submit" class="btn btn-sm btn-primary rounded-3 px-3">
+                                                    <i class="ti ti-truck-delivery me-1"></i> เริ่มจัดส่ง
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (order.OrderStatus == 2)
+                                        {
+                                            <form asp-controller="Admin" asp-action="UpdateOrderStatus" method="post" class="d-inline">
+                                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                                <input type="hidden" name="status" value="3" />
+                                                <button type="submit" class="btn btn-sm btn-success rounded-3 px-3">
+                                                    <i class="ti ti-circle-check me-1"></i> จัดส่งสำเร็จ
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (order.OrderStatus == 3)
+                                        {
+                                            <span class="text-success small fw-semibold">
+                                                <i class="ti ti-check me-1"></i> เสร็จสิ้นแล้ว
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="ti ti-inbox fs-1 d-block mb-2"></i>
+                                    ยังไม่มีคำสั่งซื้อในระบบ
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        transition: all .2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(0,0,0,.08) !important;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .admin-order-table thead th {
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .admin-order-table tbody td {
+        vertical-align: middle;
+    }
+
+    .admin-order-table tbody tr:hover {
+        background: #fcfcfc;
+    }
+</style>

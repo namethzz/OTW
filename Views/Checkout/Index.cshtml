@@ -1,0 +1,580 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "ชำระเงิน";
+
+    var cart       = ViewBag.Cart       as List<Project.Controllers.CartItem> ?? new();
+    var user       = ViewBag.User       as Project.Models.Db.User;
+    var promotions = ViewBag.Promotions as List<Project.Models.Db.Promotion> ?? new();
+    // รับ promoCode จาก query string (ถ้ามาจากหน้าโปรโมชั่น)
+    // รับจาก ViewBag (Controller) หรือ query string โดยตรง
+    var prefilledCode = (ViewBag.PrefilledCode as string) ?? Context.Request.Query["code"].ToString() ?? "";
+    decimal subtotal = ViewBag.Subtotal ?? 0m;
+    decimal shipping = ViewBag.Shipping ?? 0m;
+    decimal total    = ViewBag.Total    ?? 0m;
+}
+
+<div class="container py-5">
+
+    <!-- Back -->
+    <div class="mb-4">
+        <a asp-controller="Shop" asp-action="Cart"
+           class="back-link text-decoration-none text-muted d-inline-flex align-items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            กลับไปตะกร้าสินค้า
+        </a>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="step-bar mb-5">
+        <div class="step done">
+            <div class="step-circle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            <span>ตะกร้าสินค้า</span>
+        </div>
+        <div class="step-line active"></div>
+        <div class="step active">
+            <div class="step-circle">2</div>
+            <span>ชำระเงิน</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+            <div class="step-circle">3</div>
+            <span>สำเร็จ</span>
+        </div>
+    </div>
+
+    <form asp-controller="Checkout" asp-action="PlaceOrder" method="post" id="checkoutForm">
+        <div class="row g-4">
+
+            <!-- ── ซ้าย: ฟอร์ม ── -->
+            <div class="col-lg-7">
+
+                <!-- ข้อมูลผู้รับ -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="section-title mb-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            ข้อมูลผู้รับ
+                        </h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="field-label">ชื่อ-นามสกุลผู้รับ <span class="req">*</span></label>
+                                <input type="text" name="fullName" class="form-control field-input"
+                                       value="@user?.FullName"
+                                       placeholder="เช่น นายสมชาย รักดี" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="field-label">เบอร์โทรศัพท์ <span class="req">*</span></label>
+                                <input type="tel" name="phone" class="form-control field-input"
+                                       value="@user?.Phone"
+                                       placeholder="เช่น 081-234-5678" required />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ที่อยู่จัดส่ง -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="section-title mb-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            ที่อยู่จัดส่ง
+                        </h5>
+                        <p class="text-muted mb-4" style="font-size:.8125rem; margin-left:24px;">
+                            กรุณากรอกให้ครบถ้วนเพื่อให้พัสดุถึงที่หมายอย่างรวดเร็ว
+                        </p>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="field-label">
+                                    บ้านเลขที่ / หมู่ / ซอย / หมู่บ้าน / คอนโด <span class="req">*</span>
+                                </label>
+                                <input type="text" name="houseNo" class="form-control field-input"
+                                       placeholder="เช่น 123/45 หมู่ 3 ซอย 7 หมู่บ้านสุขใจ" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="field-label">ถนน</label>
+                                <input type="text" name="road" class="form-control field-input"
+                                       placeholder="เช่น ถนนสุขุมวิท (ถ้ามี)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="field-label">แขวง / ตำบล <span class="req">*</span></label>
+                                <input type="text" name="subDistrict" class="form-control field-input"
+                                       placeholder="เช่น คลองตัน" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="field-label">เขต / อำเภอ <span class="req">*</span></label>
+                                <input type="text" name="district" class="form-control field-input"
+                                       placeholder="เช่น คลองเตย" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="field-label">จังหวัด <span class="req">*</span></label>
+                                <input type="text" name="province" class="form-control field-input"
+                                       placeholder="เช่น กรุงเทพมหานคร" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="field-label">รหัสไปรษณีย์ <span class="req">*</span></label>
+                                <input type="text" name="zipCode" class="form-control field-input"
+                                       placeholder="เช่น 10110" maxlength="5"
+                                       pattern="[0-9]{5}" required />
+                                <div class="form-text" style="font-size:.75rem;">ตัวเลข 5 หลัก</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- โปรโมชั่น -->
+                <!-- ── Promo Code Input ── -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="section-title mb-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                <line x1="7" y1="7" x2="7.01" y2="7"/>
+                            </svg>
+                            รหัสโปรโมชั่น
+                        </h5>
+
+                        <!-- hidden data สำหรับ JS lookup -->
+                        <div id="promoDataStore" style="display:none">
+                            @foreach (var p in promotions)
+                            {
+                                <span data-code="@p.PromoCode"
+                                      data-id="@p.PromotionId"
+                                      data-name="@p.PromoName"
+                                      data-type="@p.DiscountType"
+                                      data-value="@p.DiscountValue"
+                                      data-min="@p.MinOrderAmount"></span>
+                            }
+                        </div>
+
+                        <!-- input + ปุ่ม Apply -->
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="promoCodeInput"
+                                   class="field-input" style="flex:1;text-transform:uppercase;letter-spacing:.05em;font-weight:600;"
+                                   placeholder="กรอกรหัสโปรโมชั่น เช่น NEW30"
+                                   value="@prefilledCode"
+                                   oninput="this.value=this.value.toUpperCase()" />
+                            <button type="button" onclick="applyPromo()"
+                                    style="background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:0 20px;font-size:.875rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;"
+                                    onmouseover="this.style.background='#333'" onmouseout="this.style.background='#1a1a1a'">
+                                ใช้โค้ด
+                            </button>
+                        </div>
+
+                        <!-- hidden field ส่ง promotionId ไป Controller -->
+                        <input type="hidden" name="promotionId" id="appliedPromoId" value="0" />
+
+                        <div id="promoMsg" class="mt-2"></div>
+
+                        @if (ViewBag.PromoError != null)
+                        {
+                            <div class="alert alert-warning mt-2 rounded-3 py-2 small">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                @ViewBag.PromoError
+                            </div>
+                        }
+
+                        <!-- แนะนำโปรที่มีสิทธิ์ -->
+                        @if (promotions.Any())
+                        {
+                            <div style="margin-top:12px;">
+                                <div style="font-size:.72rem;font-weight:600;color:#b0b0c0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">โปรโมชั่นที่คุณมีสิทธิ์ใช้</div>
+                                <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                                    @foreach (var p in promotions)
+                                    {
+                                        <button type="button"
+                                                onclick="fillPromoCode('@p.PromoCode')"
+                                                style="background:#f8f8fa;border:1px solid #ebebed;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;color:#0d0d10;cursor:pointer;font-family:monospace;letter-spacing:.04em;transition:all .15s;"
+                                                onmouseover="this.style.background='#1a1a1a';this.style.color='#fff'"
+                                                onmouseout="this.style.background='#f8f8fa';this.style.color='#0d0d10'">
+                                            @p.PromoCode
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- วิธีชำระเงิน -->
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="section-title mb-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                            วิธีชำระเงิน
+                        </h5>
+                        <div class="d-flex flex-column gap-2">
+
+                            <label class="pay-option">
+                                <input type="radio" name="payMethod" value="cod" checked />
+                                <div class="pay-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M17 12h.01M7 12h.01"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="pay-title">เก็บเงินปลายทาง (COD)</div>
+                                    <div class="pay-desc">ชำระเมื่อได้รับสินค้า</div>
+                                </div>
+                            </label>
+
+                            <label class="pay-option">
+                                <input type="radio" name="payMethod" value="transfer" />
+                                <div class="pay-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <path d="M3 9h18M9 21V9"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="pay-title">โอนเงินผ่านธนาคาร</div>
+                                    <div class="pay-desc">ธนาคารกสิกรไทย 123-4-56789-0</div>
+                                </div>
+                            </label>
+
+                            <label class="pay-option">
+                                <input type="radio" name="payMethod" value="promptpay" />
+                                <div class="pay-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="pay-title">PromptPay</div>
+                                    <div class="pay-desc">เบอร์ 081-234-5678</div>
+                                </div>
+                            </label>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── ขวา: สรุปยอด ── -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top:80px">
+                    <div class="card-body p-4">
+                        <h5 class="section-title mb-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                            สรุปคำสั่งซื้อ
+                        </h5>
+
+                        <!-- รายการสินค้า -->
+                        <div class="mb-3">
+                            @foreach (var item in cart)
+                            {
+                                <div class="d-flex align-items-center gap-3 py-2 border-bottom cart-row">
+                                    <div class="cart-thumb flex-shrink-0 rounded-3 overflow-hidden">
+                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        {
+                                            <img src="@item.ImageUrl" class="w-100 h-100"
+                                                 style="object-fit:contain;padding:4px" />
+                                        }
+                                        else
+                                        {
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                 stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                <polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                        }
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="cart-item-name">@item.ProductName</div>
+                                        <div class="cart-item-meta">฿@item.Price.ToString("N0") × @item.Quantity</div>
+                                    </div>
+                                    <span class="cart-item-total">฿@item.Subtotal.ToString("N0")</span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- ยอดต่างๆ -->
+                        <div class="summary-row">
+                            <span class="text-muted">ยอดสินค้า</span>
+                            <span>฿@subtotal.ToString("N2")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="text-muted">ส่วนลด</span>
+                            <span class="text-success fw-semibold" id="discountDisplay">-฿0.00</span>
+                        </div>
+                        <div class="summary-row mb-3">
+                            <span class="text-muted">ค่าจัดส่ง</span>
+                            @if (shipping == 0)
+                            {
+                                <span class="free-ship-badge">ฟรี</span>
+                            }
+                            else
+                            {
+                                <span>฿@shipping.ToString("N2")</span>
+                            }
+                        </div>
+
+                        <div class="border-top pt-3 mb-4">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="fw-semibold" style="font-size:.9375rem;">ยอดรวมทั้งหมด</span>
+                                <span class="fw-bold" style="font-size:1.35rem;" id="totalDisplay">
+                                    ฿@total.ToString("N2")
+                                </span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-confirm w-100 mb-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            ยืนยันคำสั่งซื้อ
+                        </button>
+                        <a asp-controller="Shop" asp-action="Cart"
+                           class="btn-back-cart w-100 d-block text-center text-decoration-none">
+                            กลับไปตะกร้า
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<style>
+.back-link { font-size:.875rem; transition:color .15s; }
+.back-link:hover { color:#000 !important; }
+
+/* Step bar */
+.step-bar {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+}
+.step {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-size: .75rem; color: #aaa; font-weight: 500; min-width: 80px;
+}
+.step.active { color: #1a1a1a; }
+.step.done   { color: #2E7D32; }
+.step-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid #ddd; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8125rem; font-weight: 600; color: #aaa;
+}
+.step.active .step-circle {
+    border-color: #1a1a1a; background: #1a1a1a; color: #fff;
+}
+.step.done .step-circle {
+    border-color: #2E7D32; background: #2E7D32; color: #fff;
+}
+.step-line {
+    flex: 1; height: 2px; background: #eee; max-width: 60px;
+}
+.step-line.active { background: #1a1a1a; }
+
+/* Section title */
+.section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .9375rem; font-weight: 600; color: #1a1a1a; margin: 0;
+}
+
+/* Fields */
+.field-label {
+    display: block; font-size: .8125rem; font-weight: 500;
+    color: #444; margin-bottom: 5px;
+}
+.req { color: #e53e3e; }
+.field-input {
+    border-radius: 10px !important;
+    border: 1px solid #e0e0e0 !important;
+    font-size: .875rem !important;
+    padding: 9px 13px !important;
+    transition: border-color .15s, box-shadow .15s !important;
+}
+.field-input:focus {
+    border-color: #1a1a1a !important;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.06) !important;
+}
+
+/* Payment options */
+.pay-option {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid #e8e8e8; border-radius: 12px;
+    padding: 12px 16px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.pay-option:hover { background: #fafafa; border-color: #ccc; }
+.pay-option input[type=radio] { display: none; }
+.pay-option:has(input:checked) {
+    border-color: #1a1a1a; background: #fafafa;
+}
+.pay-icon-wrap {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: #f3f3f3; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #555;
+}
+.pay-option:has(input:checked) .pay-icon-wrap {
+    background: #1a1a1a; color: #fff;
+}
+.pay-title { font-size: .875rem; font-weight: 600; color: #1a1a1a; }
+.pay-desc  { font-size: .75rem; color: #888; margin-top: 1px; }
+
+/* Cart items in summary */
+.cart-row:last-child { border-bottom: 0 !important; }
+.cart-thumb {
+    width: 48px; height: 48px;
+    background: #f8f8f8; border: 1px solid #eee;
+    display: flex; align-items: center; justify-content: center;
+}
+.cart-item-name {
+    font-size: .8125rem; font-weight: 500; color: #1a1a1a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 140px;
+}
+.cart-item-meta  { font-size: .75rem; color: #999; margin-top: 1px; }
+.cart-item-total { font-size: .8125rem; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+
+/* Summary rows */
+.summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .875rem; margin-bottom: 6px;
+}
+.free-ship-badge {
+    background: #E8F5E9; color: #2E7D32;
+    font-size: .75rem; font-weight: 600;
+    padding: 2px 10px; border-radius: 20px;
+}
+
+/* Buttons */
+.btn-confirm {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: #1a1a1a; color: #fff;
+    border: none; border-radius: 12px;
+    padding: 13px; font-size: .9375rem; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+}
+.btn-confirm:hover { background: #333; }
+.btn-back-cart {
+    border: 1px solid #e0e0e0; border-radius: 12px;
+    padding: 10px; font-size: .875rem; color: #555;
+    transition: background .15s;
+}
+.btn-back-cart:hover { background: #f5f5f5; color: #1a1a1a; }
+</style>
+
+@section Scripts {
+<script>
+const subtotal = @subtotal;
+const shipping = @shipping;
+
+// ── Payment option highlight ──
+document.querySelectorAll('.pay-option input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => {
+        document.querySelectorAll('.pay-option').forEach(el => el.classList.remove('selected'));
+        r.closest('.pay-option').classList.add('selected');
+    });
+});
+
+// ── Promo code lookup ──
+function getPromoData(code) {
+    const spans = document.querySelectorAll('#promoDataStore span');
+    for (const s of spans) {
+        if (s.dataset.code === code.toUpperCase()) return s.dataset;
+    }
+    return null;
+}
+
+function fillPromoCode(code) {
+    document.getElementById('promoCodeInput').value = code;
+    applyPromo();
+}
+
+function applyPromo() {
+    const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
+    const msg  = document.getElementById('promoMsg');
+    const idInput = document.getElementById('appliedPromoId');
+
+    if (!code) {
+        idInput.value = '0';
+        document.getElementById('discountDisplay').textContent = '-฿0.00';
+        document.getElementById('totalDisplay').textContent = '฿' + fmt(subtotal + shipping);
+        msg.innerHTML = '';
+        return;
+    }
+
+    const data = getPromoData(code);
+    if (!data) {
+        idInput.value = '0';
+        document.getElementById('discountDisplay').textContent = '-฿0.00';
+        document.getElementById('totalDisplay').textContent = '฿' + fmt(subtotal + shipping);
+        msg.innerHTML = '<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:9px 14px;font-size:.8125rem;color:#9f1239;margin-top:8px;">❌ ไม่พบรหัสโปรโมชั่นนี้ หรือคุณไม่มีสิทธิ์ใช้งาน</div>';
+        return;
+    }
+
+    const type  = parseInt(data.type);
+    const value = parseFloat(data.value);
+    const min   = parseFloat(data.min) || 0;
+
+    if (subtotal < min) {
+        idInput.value = '0';
+        document.getElementById('discountDisplay').textContent = '-฿0.00';
+        document.getElementById('totalDisplay').textContent = '฿' + fmt(subtotal + shipping);
+        msg.innerHTML = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 14px;font-size:.8125rem;color:#92400e;margin-top:8px;">⚠️ ต้องซื้อขั้นต่ำ <strong>฿${fmt(min)}</strong> ถึงจะใช้โปรนี้ได้</div>`;
+        return;
+    }
+
+    const discount = type === 1
+        ? Math.round(subtotal * (value / 100) * 100) / 100
+        : Math.min(value, subtotal);
+    const newTotal = subtotal - discount + shipping;
+
+    idInput.value = data.id;
+    document.getElementById('discountDisplay').textContent = '-฿' + fmt(discount);
+    document.getElementById('totalDisplay').textContent = '฿' + fmt(newTotal);
+    msg.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:9px 14px;font-size:.8125rem;color:#166534;margin-top:8px;">✅ ใช้โปรโมชั่น <strong>${data.name}</strong> แล้ว ประหยัดไป <strong>฿${fmt(discount)}</strong></div>`;
+}
+
+// auto-apply ถ้ามี code จาก query string
+window.addEventListener('DOMContentLoaded', () => {
+    const code = document.getElementById('promoCodeInput').value;
+    if (code) applyPromo();
+});
+
+function fmt(n) {
+    return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+</script>
+}

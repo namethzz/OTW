@@ -1,0 +1,194 @@
+@model IEnumerable<Project.Models.Db.Product>
+@using Project.Models.Db
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Shop";
+    var allReviews = ViewBag.AllReviews as List<Review> ?? new List<Review>();
+}
+
+<div class="container my-5">
+
+    @if (TempData["CartSuccess"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="ti ti-shopping-cart-check me-2"></i>@TempData["CartSuccess"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">สินค้าทั้งหมด</h2>
+            <small class="text-muted">@Model.Count() รายการ</small>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ── Sidebar Filter ── -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm p-3 sticky-top" style="top:80px">
+                <h6 class="fw-bold mb-3">🔍 ค้นหาและกรอง</h6>
+
+                <form method="get" asp-action="Index">
+                    <!-- ค้นหา -->
+                    <div class="mb-3">
+                        <input type="text" name="search" class="form-control"
+                               placeholder="ค้นหาสินค้า..."
+                               value="@ViewBag.Search" />
+                    </div>
+
+                    <!-- หมวดหมู่ -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">หมวดหมู่</label>
+                        <div class="d-flex flex-column gap-1">
+                            <a href="@Url.Action("Index", "Shop")"
+                               class="btn btn-sm @(ViewBag.CategoryId == null ? "btn-dark" : "btn-outline-secondary") text-start">
+                                ทั้งหมด
+                            </a>
+                            @foreach (var cat in ViewBag.Categories)
+                            {
+                                <a href="@Url.Action("Index", "Shop", new { categoryId = cat.CategoryId })"
+                                   class="btn btn-sm @(ViewBag.CategoryId == cat.CategoryId ? "btn-dark" : "btn-outline-secondary") text-start">
+                                    @cat.CategoryName
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- เรียงลำดับ -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">เรียงตาม</label>
+                        @{
+                            var currentSort = ViewBag.Sort as string;
+                        }
+                        <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value=""           selected="@(currentSort == null)">ค่าเริ่มต้น</option>
+                            <option value="price_asc"  selected="@(currentSort == "price_asc")">ราคา: ต่ำ → สูง</option>
+                            <option value="price_desc" selected="@(currentSort == "price_desc")">ราคา: สูง → ต่ำ</option>
+                            <option value="newest"     selected="@(currentSort == "newest")">ใหม่ล่าสุด</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100 btn-sm">
+                        <i class="ti ti-search me-1"></i>ค้นหา
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ── Product Grid ── -->
+        <div class="col-lg-9">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="ti ti-package-off" style="font-size:48px"></i>
+                    <p class="mt-3">ไม่พบสินค้าที่ค้นหา</p>
+                    <a asp-action="Index" class="btn btn-outline-dark btn-sm">ดูทั้งหมด</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-4">
+                    @foreach (var p in Model)
+                    {
+                        <div class="col-sm-6 col-xl-4">
+                            <div class="card border-0 shadow-sm h-100 product-card">
+
+                                <!-- รูปสินค้า -->
+                                <a asp-controller="Shop" asp-action="Detail" asp-route-id="@p.ProductId">
+                                    <div class="position-relative overflow-hidden" style="height:220px;background:#f8f8f8">
+                                        @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                        {
+                                            <img src="@p.ImageUrl" class="w-100 h-100"
+                                                 style="object-fit:contain;padding:12px"
+                                                 alt="@p.ProductName" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                                <i class="ti ti-photo" style="font-size:40px"></i>
+                                            </div>
+                                        }
+                                        <!-- Badge หมวดหมู่ -->
+                                        <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75">
+                                            @p.Category?.CategoryName
+                                        </span>
+                                        @if (p.Stock < 10)
+                                        {
+                                            <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
+                                                เหลือน้อย!
+                                            </span>
+                                        }
+                                    </div>
+                                </a>
+
+                                <div class="card-body d-flex flex-column">
+                                    <a asp-controller="Shop" asp-action="Detail" asp-route-id="@p.ProductId"
+                                       class="text-decoration-none text-dark">
+                                        <h6 class="fw-semibold mb-1">@p.ProductName</h6>
+                                    </a>
+
+                                    <p class="text-muted small mb-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                                        @p.Description
+                                    </p>
+
+                                    @{
+                                        var pReviews = allReviews.Where(r => r.ProductId == p.ProductId).ToList();
+                                        var pAvg = pReviews.Any() ? pReviews.Average(r => r.Rating) : 0;
+                                        var pCount = pReviews.Count;
+                                    }
+                                    <div class="d-flex align-items-center gap-1 mb-2">
+                                        @for (int s = 1; s <= 5; s++)
+                                        {
+                                            <svg width="12" height="12" viewBox="0 0 24 24"
+                                                 fill="@(s <= Math.Round(pAvg) ? "#F5A623" : "none")"
+                                                 stroke="#F5A623" stroke-width="1.5"
+                                                 stroke-linecap="round" stroke-linejoin="round">
+                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                            </svg>
+                                        }
+                                        @if (pCount > 0)
+                                        {
+                                            <small class="text-muted ms-1">(@pCount)</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted ms-1">ยังไม่มีรีวิว</small>
+                                        }
+                                    </div>
+
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fs-5 fw-bold text-dark">฿@p.Price.ToString("N0")</span>
+                                            <small class="text-muted">คงเหลือ @p.Stock</small>
+                                        </div>
+
+                                        <!-- Add to Cart -->
+                                        <form asp-controller="Shop" asp-action="AddToCart" method="post">
+                                            <input type="hidden" name="productId" value="@p.ProductId" />
+                                            <input type="hidden" name="quantity" value="1" />
+                                            <button type="submit" class="btn btn-dark w-100"
+                                                    @(p.Stock == 0 ? "disabled" : "")>
+                                                <i class="ti ti-shopping-cart me-1"></i>
+                                                @(p.Stock == 0 ? "สินค้าหมด" : "เพิ่มลงตะกร้า")
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+<style>
+.product-card { transition: transform .2s, box-shadow .2s; }
+.product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12) !important; }
+</style>

@@ -1,0 +1,329 @@
+@model IEnumerable<Project.Models.Db.Product>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "สินค้าทั้งหมด";
+    var totalProducts = Model.Count();
+    var activeProducts = Model.Count(p => p.Status == 1);
+    var lowStock = Model.Count(p => p.Stock < 10 && p.Status == 1);
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+    .pd-page { font-family: 'Sora', system-ui, sans-serif; }
+    :root {
+        --s:#ffffff;--s2:#f8f8fa;--bd:#ebebed;
+        --t1:#0d0d10;--t2:#6b6b80;--t3:#b0b0c0;
+        --r:14px;--accent:#111113;
+    }
+    .pd-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+    .pd-title{font-size:1.35rem;font-weight:700;color:var(--t1);letter-spacing:-.025em;margin:0 0 3px;}
+    .pd-sub{font-size:.8rem;color:var(--t2);margin:0;}
+    .pd-add-btn{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:10px 18px;font-size:.8375rem;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .15s,transform .1s;}
+    .pd-add-btn:hover{background:#333;color:#fff;transform:translateY(-1px);}
+
+    /* Stats */
+    .pd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+    .pd-stat{background:var(--s);border:1px solid var(--bd);border-radius:var(--r);padding:15px 20px;display:flex;align-items:center;gap:13px;transition:box-shadow .2s,transform .2s;}
+    .pd-stat:hover{box-shadow:0 6px 24px rgba(0,0,0,.07);transform:translateY(-2px);}
+    .pd-stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+    .pd-stat-num{font-size:1.5rem;font-weight:700;color:var(--t1);line-height:1;margin-bottom:2px;}
+    .pd-stat-label{font-size:.73rem;color:var(--t2);font-weight:500;}
+
+    /* Toolbar */
+    .pd-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+    .pd-search{position:relative;flex:1;min-width:200px;max-width:300px;}
+    .pd-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none;}
+    .pd-search input{width:100%;border:1px solid var(--bd);border-radius:var(--r);padding:9px 12px 9px 34px;font-size:.8125rem;font-family:'Sora',sans-serif;color:var(--t1);background:var(--s);outline:none;transition:border-color .15s,box-shadow .15s;}
+    .pd-search input:focus{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,.05);}
+    .pd-search input::placeholder{color:var(--t3);}
+    .pd-filter{border:1px solid var(--bd);border-radius:var(--r);padding:9px 13px;font-size:.8125rem;font-family:'Sora',sans-serif;color:var(--t1);background:var(--s);outline:none;cursor:pointer;}
+    .pd-count{margin-left:auto;font-size:.75rem;color:var(--t2);font-weight:500;white-space:nowrap;}
+    .pd-count strong{color:var(--t1);}
+
+    /* Table */
+    .pd-card{background:var(--s);border:1px solid var(--bd);border-radius:18px;overflow:hidden;}
+    .pd-table{width:100%;border-collapse:collapse;}
+    .pd-table thead th{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);padding:11px 18px;background:var(--s2);border-bottom:1px solid var(--bd);white-space:nowrap;}
+    .pd-table tbody tr{border-bottom:1px solid var(--bd);transition:background .12s;animation:rowIn .2s ease both;}
+    .pd-table tbody tr:last-child{border-bottom:0;}
+    .pd-table tbody tr:hover{background:#fafafa;}
+    .pd-table td{padding:12px 18px;font-size:.8125rem;color:var(--t1);vertical-align:middle;}
+    @@keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .pd-table tbody tr:nth-child(1){animation-delay:.03s}.pd-table tbody tr:nth-child(2){animation-delay:.06s}
+    .pd-table tbody tr:nth-child(3){animation-delay:.09s}.pd-table tbody tr:nth-child(4){animation-delay:.12s}
+    .pd-table tbody tr:nth-child(5){animation-delay:.15s}.pd-table tbody tr:nth-child(n+6){animation-delay:.18s}
+
+    /* Product cell */
+    .pd-prod-cell{display:flex;align-items:center;gap:11px;}
+    .pd-thumb{width:44px;height:44px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .pd-thumb img{width:100%;height:100%;object-fit:contain;padding:3px;}
+    .pd-prod-name{font-weight:600;color:var(--t1);font-size:.8375rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pd-prod-id{font-size:.71rem;color:var(--t3);margin-top:1px;}
+
+    /* Category badge */
+    .pd-cat{display:inline-block;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:2px 9px;font-size:.72rem;font-weight:500;color:var(--t2);}
+
+    /* Price */
+    .pd-price{font-weight:700;color:var(--t1);}
+
+    /* Stock */
+    .pd-stock-ok{font-weight:600;color:var(--t1);}
+    .pd-stock-low{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:#e11d48;}
+    .pd-stock-wrap{display:flex;flex-direction:column;gap:4px;}
+    .pd-stock-bar{height:3px;width:60px;background:var(--bd);border-radius:99px;overflow:hidden;}
+    .pd-stock-fill{height:100%;border-radius:99px;}
+
+    /* Status */
+    .pd-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+    .pd-bdot{width:5px;height:5px;border-radius:50%;}
+
+    /* Action buttons */
+    .pd-actions{display:flex;align-items:center;gap:6px;}
+    .pd-edit-btn{width:30px;height:30px;border-radius:8px;background:none;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;color:var(--t2);text-decoration:none;transition:background .15s,color .15s,border-color .15s;}
+    .pd-edit-btn:hover{background:#f0f0ff;border-color:#c7d2fe;color:#6366f1;}
+    .pd-del-btn{width:30px;height:30px;border-radius:8px;background:none;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;color:var(--t3);cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+    .pd-del-btn:hover{background:#fff1f2;border-color:#fecdd3;color:#e11d48;}
+
+    /* Delete modal */
+    .pd-modal-icon{width:52px;height:52px;border-radius:50%;background:#fff1f2;border:1px solid #fecdd3;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+    .pd-mc{background:none;border:1px solid var(--bd);border-radius:10px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:.875rem;color:var(--t2);cursor:pointer;transition:background .15s;}
+    .pd-mc:hover{background:var(--s2);}
+    .pd-md{background:#e11d48;border:none;color:#fff;border-radius:10px;padding:10px 24px;font-family:'Sora',sans-serif;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+    .pd-md:hover{background:#be123c;color:#fff;}
+
+    @@media(max-width:768px){.pd-stats{grid-template-columns:1fr 1fr}}
+</style>
+
+<div class="pd-page">
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4 py-2"
+             style="font-size:.8375rem;" role="alert">
+            <i class="ti ti-circle-check me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="pd-header">
+        <div>
+            <h1 class="pd-title">สินค้าทั้งหมด</h1>
+            <p class="pd-sub">จัดการสินค้าในคลัง</p>
+        </div>
+        <a asp-controller="Admin" asp-action="AddProduct" class="pd-add-btn">
+            <i class="ti ti-plus" style="font-size:15px;"></i>เพิ่มสินค้า
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="pd-stats">
+        <div class="pd-stat">
+            <div class="pd-stat-icon" style="background:#f0f0ff;"><i class="ti ti-box-seam" style="color:#6366f1;"></i></div>
+            <div><div class="pd-stat-num">@totalProducts</div><div class="pd-stat-label">สินค้าทั้งหมด</div></div>
+        </div>
+        <div class="pd-stat">
+            <div class="pd-stat-icon" style="background:#f0fdf4;"><i class="ti ti-circle-check" style="color:#22c55e;"></i></div>
+            <div><div class="pd-stat-num">@activeProducts</div><div class="pd-stat-label">เปิดขายอยู่</div></div>
+        </div>
+        <div class="pd-stat">
+            <div class="pd-stat-icon" style="background:#fff1f2;"><i class="ti ti-alert-triangle" style="color:#e11d48;"></i></div>
+            <div><div class="pd-stat-num">@lowStock</div><div class="pd-stat-label">Stock ใกล้หมด</div></div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="pd-toolbar">
+        <div class="pd-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="pdSearch" placeholder="ค้นหาชื่อสินค้า..." oninput="filterProducts()" />
+        </div>
+        <select class="pd-filter" id="pdStatus" onchange="filterProducts()">
+            <option value="">ทุกสถานะ</option>
+            <option value="1">เปิดขาย</option>
+            <option value="0">ปิดขาย</option>
+        </select>
+        <select class="pd-filter" id="pdStock" onchange="filterProducts()">
+            <option value="">ทุก Stock</option>
+            <option value="low">Stock น้อย (&lt;10)</option>
+            <option value="ok">Stock ปกติ</option>
+        </select>
+        <div class="pd-count">แสดง <strong id="pdCount">@Model.Count()</strong> รายการ</div>
+    </div>
+
+    <!-- Table -->
+    <div class="pd-card">
+        <table class="pd-table" id="pdTable">
+            <thead>
+                <tr>
+                    <th>สินค้า</th>
+                    <th>หมวดหมู่</th>
+                    <th>ราคา</th>
+                    <th>Stock</th>
+                    <th>สถานะ</th>
+                    <th>วันที่เพิ่ม</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    var stockPct = Math.Min((double)p.Stock / 50.0 * 100, 100);
+                    var stockColor = p.Stock < 5 ? "#e11d48" : p.Stock < 10 ? "#f59e0b" : "#22c55e";
+
+                    <tr data-name="@p.ProductName.ToLower()"
+                        data-status="@p.Status"
+                        data-stock="@(p.Stock < 10 ? "low" : "ok")">
+
+                        <!-- สินค้า -->
+                        <td>
+                            <div class="pd-prod-cell">
+                                <div class="pd-thumb">
+                                    @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                    {
+                                        <img src="@p.ImageUrl" alt="@p.ProductName" />
+                                    }
+                                    else
+                                    {
+                                        <i class="ti ti-photo" style="font-size:16px;color:var(--t3);"></i>
+                                    }
+                                </div>
+                                <div>
+                                    <div class="pd-prod-name" title="@p.ProductName">@p.ProductName</div>
+                                    <div class="pd-prod-id">#@p.ProductId</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- หมวดหมู่ -->
+                        <td><span class="pd-cat">@(p.Category?.CategoryName ?? "—")</span></td>
+
+                        <!-- ราคา -->
+                        <td><span class="pd-price">฿@p.Price.ToString("N2")</span></td>
+
+                        <!-- Stock -->
+                        <td>
+                            <div class="pd-stock-wrap">
+                                @if (p.Stock < 10)
+                                {
+                                    <span class="pd-stock-low">
+                                        <i class="ti ti-alert-triangle" style="font-size:12px;"></i>
+                                        @p.Stock ชิ้น
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="pd-stock-ok">@p.Stock ชิ้น</span>
+                                }
+                                <div class="pd-stock-bar">
+                                    <div class="pd-stock-fill" style="width:@stockPct%;background:@stockColor;"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- สถานะ -->
+                        <td>
+                            @if (p.Status == 1)
+                            {
+                                <span class="pd-badge" style="background:#f0fdf4;color:#166534;">
+                                    <span class="pd-bdot" style="background:#22c55e;"></span>เปิดขาย
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="pd-badge" style="background:#f4f4f5;color:#71717a;">
+                                    <span class="pd-bdot" style="background:#a1a1aa;"></span>ปิดขาย
+                                </span>
+                            }
+                        </td>
+
+                        <!-- วันที่ -->
+                        <td style="font-size:.78rem;color:var(--t2);">
+                            @p.CreatedAt?.ToString("dd/MM/yy")
+                        </td>
+
+                        <!-- จัดการ -->
+                        <td>
+                            <div class="pd-actions">
+                                <a asp-controller="Admin" asp-action="EditProduct"
+                                   asp-route-id="@p.ProductId" class="pd-edit-btn" title="แก้ไข">
+                                    <i class="ti ti-edit" style="font-size:14px;"></i>
+                                </a>
+                                <button class="pd-del-btn" title="ลบ"
+                                        onclick="confirmDelete(@p.ProductId, '@p.ProductName.Replace("'", "\\'")') ">
+                                    <i class="ti ti-trash" style="font-size:14px;"></i>
+                                </button>
+                            </div>
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.Any())
+        {
+            <div style="text-align:center;padding:60px 24px;">
+                <div style="width:56px;height:56px;border-radius:50%;background:var(--s2);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-box-seam" style="font-size:22px;color:var(--t3);"></i>
+                </div>
+                <p style="font-weight:600;color:var(--t1);margin:0 0 4px;">ยังไม่มีสินค้า</p>
+                <p style="font-size:.8125rem;color:var(--t2);margin:0;">กดปุ่ม "เพิ่มสินค้า" เพื่อเริ่มต้น</p>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="pdDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-body text-center p-5">
+                <div class="pd-modal-icon">
+                    <i class="ti ti-trash" style="font-size:20px;color:#e11d48;"></i>
+                </div>
+                <h5 style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin:0 0 6px;">ยืนยันการลบ?</h5>
+                <p style="font-size:.8125rem;color:#6b6b80;margin:0 0 4px;">
+                    สินค้า <strong id="pdDelName" style="color:#0d0d10;"></strong>
+                </p>
+                <p style="font-size:.75rem;color:#e11d48;margin:0 0 20px;">
+                    ถ้ามีประวัติการสั่งซื้อ ระบบจะปิดการขายแทนการลบ
+                </p>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                    <button class="pd-mc" data-bs-dismiss="modal">ยกเลิก</button>
+                    <a id="pdDelBtn" href="#" class="pd-md">
+                        <i class="ti ti-trash"></i>ลบเลย
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function filterProducts() {
+    const q      = document.getElementById('pdSearch').value.toLowerCase();
+    const status = document.getElementById('pdStatus').value;
+    const stock  = document.getElementById('pdStock').value;
+    let n = 0;
+    document.querySelectorAll('#pdTable tbody tr').forEach(row => {
+        const show = (!q      || (row.dataset.name  || '').includes(q))
+                  && (!status || row.dataset.status === status)
+                  && (!stock  || row.dataset.stock  === stock);
+        row.style.display = show ? '' : 'none';
+        if (show) n++;
+    });
+    document.getElementById('pdCount').textContent = n;
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('pdDelName').textContent = name;
+    document.getElementById('pdDelBtn').href = '/Admin/DeleteProduct/' + id;
+    new bootstrap.Modal(document.getElementById('pdDeleteModal')).show();
+}
+</script>
+}

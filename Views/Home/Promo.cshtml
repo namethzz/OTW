@@ -1,0 +1,355 @@
+﻿@model IEnumerable<Project.Models.Db.Promotion>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "โปรโมชั่น";
+    var now = DateTime.Now;
+    var activePromos = Model.Where(p => p.Status == 1 && p.EndDate > now).ToList();
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+    .promo-page { font-family: 'Sora', system-ui, sans-serif; }
+
+    /* ── Hero ── */
+    .promo-hero {
+        background: linear-gradient(135deg, #0d0d10 0%, #1a1a2e 50%, #16213e 100%);
+        padding: 72px 0 56px; text-align: center; position: relative; overflow: hidden;
+    }
+    .promo-hero::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(circle at 30% 50%, rgba(99,102,241,.18) 0%, transparent 60%),
+                    radial-gradient(circle at 70% 50%, rgba(34,197,94,.12) 0%, transparent 60%);
+    }
+    .promo-hero-content { position: relative; z-index: 1; }
+    .promo-hero-eyebrow {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+        border-radius: 99px; padding: 5px 16px;
+        font-size: .75rem; font-weight: 600; color: rgba(255,255,255,.7);
+        letter-spacing: .06em; text-transform: uppercase;
+        margin-bottom: 20px;
+    }
+    .promo-hero-title {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 800; color: #fff;
+        letter-spacing: -.04em; line-height: 1.1;
+        margin: 0 0 16px;
+    }
+    .promo-hero-title span { color: #86efac; }
+    .promo-hero-sub { font-size: 1rem; color: rgba(255,255,255,.55); margin: 0; }
+
+    /* ── Floating badges ── */
+    .promo-float {
+        display: flex; justify-content: center; gap: 12px;
+        flex-wrap: wrap; margin-top: 32px;
+    }
+    .promo-float-badge {
+        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+        border-radius: 99px; padding: 8px 18px;
+        font-size: .8rem; font-weight: 600; color: rgba(255,255,255,.8);
+        display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Section ── */
+    .promo-section { padding: 56px 0; }
+    .promo-section-title {
+        font-size: 1.5rem; font-weight: 800; color: #0d0d10;
+        letter-spacing: -.03em; margin: 0 0 6px;
+    }
+    .promo-section-sub { font-size: .875rem; color: #6b6b80; margin: 0 0 32px; }
+
+    /* ── Promo Cards ── */
+    .promo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+
+    .promo-card {
+        background: #fff; border: 1px solid #ebebed;
+        border-radius: 20px; overflow: hidden;
+        transition: box-shadow .25s, transform .25s;
+        position: relative;
+    }
+    .promo-card:hover { box-shadow: 0 16px 48px rgba(0,0,0,.1); transform: translateY(-5px); }
+
+    .promo-card-top {
+        padding: 24px 24px 20px;
+        background: linear-gradient(135deg, #f8f8fa 0%, #fff 100%);
+        border-bottom: 1px solid #ebebed;
+        position: relative;
+    }
+    .promo-card-discount {
+        font-size: 3rem; font-weight: 800; color: #0d0d10;
+        letter-spacing: -.05em; line-height: 1;
+    }
+    .promo-card-discount sup { font-size: 1.2rem; font-weight: 600; }
+    .promo-card-type { font-size: .75rem; color: #6b6b80; font-weight: 500; margin-top: 4px; }
+
+    .promo-card-code-wrap {
+        position: absolute; top: 20px; right: 20px;
+        background: #0d0d10; color: #fff;
+        border-radius: 10px; padding: 6px 13px;
+        font-size: .75rem; font-weight: 700;
+        font-family: 'Courier New', monospace;
+        letter-spacing: .05em; cursor: pointer;
+        transition: background .15s; user-select: all;
+        display: flex; align-items: center; gap: 5px;
+    }
+    .promo-card-code-wrap:hover { background: #333; }
+    .promo-card-code-wrap.copied { background: #22c55e; }
+
+    .promo-card-body { padding: 20px 24px; }
+    .promo-card-name { font-size: 1rem; font-weight: 700; color: #0d0d10; margin: 0 0 8px; }
+    .promo-card-desc { font-size: .825rem; color: #6b6b80; line-height: 1.6; margin: 0 0 16px; }
+
+    .promo-card-meta {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+    }
+    .promo-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 11px; border-radius: 7px;
+        font-size: .72rem; font-weight: 600;
+        letter-spacing: .01em;
+    }
+
+    .promo-card-deadline {
+        display: flex; align-items: center; gap: 6px;
+        font-size: .75rem; color: #b0b0c0;
+        padding-top: 14px; border-top: 1px solid #f0f0f0;
+    }
+    .promo-card-deadline strong { color: #71717a; }
+
+    /* ── How to use ── */
+    .promo-how { background: #f8f8fa; padding: 56px 0; }
+    .promo-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .promo-step { text-align: center; padding: 32px 20px; }
+    .promo-step-num {
+        width: 52px; height: 52px; border-radius: 50%;
+        background: #0d0d10; color: #fff;
+        font-size: 1.1rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px;
+    }
+    .promo-step-title { font-size: .9375rem; font-weight: 700; color: #0d0d10; margin: 0 0 8px; }
+    .promo-step-desc { font-size: .825rem; color: #6b6b80; line-height: 1.6; margin: 0; }
+
+    /* Empty */
+    .promo-empty {
+        text-align: center; padding: 80px 24px;
+        background: #fff; border: 1px solid #ebebed;
+        border-radius: 20px;
+    }
+
+    /* Toast */
+    .promo-toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+        background: #0d0d10; color: #fff;
+        padding: 12px 24px; border-radius: 99px;
+        font-size: .825rem; font-weight: 600;
+        display: flex; align-items: center; gap: 8px;
+        z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+        white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+    .promo-toast.show { transform: translateX(-50%) translateY(0); }
+
+    @@media(max-width:768px) {
+        .promo-steps { grid-template-columns: 1fr; }
+        .promo-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="promo-page">
+
+    <!-- Hero -->
+    <div class="promo-hero">
+        <div class="container">
+            <div class="promo-hero-content">
+                <div class="promo-hero-eyebrow">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    โปรโมชั่นพิเศษ
+                </div>
+                <h1 class="promo-hero-title">
+                    ส่วนลดสุดพิเศษ<br/>
+                    <span>เพื่อคุณโดยเฉพาะ</span>
+                </h1>
+                <p class="promo-hero-sub">เลือกโปรโมชั่นที่เหมาะกับคุณ แล้วนำรหัสไปใช้ตอน Checkout</p>
+                <div class="promo-float">
+                    <div class="promo-float-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        ของแท้รับประกัน 100%
+                    </div>
+                    <div class="promo-float-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        ส่งฟรีเมื่อครบ ฿1,500
+                    </div>
+                    <div class="promo-float-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+                        คืนสินค้าได้ภายใน 7 วัน
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promo Cards -->
+    <div class="promo-section">
+        <div class="container">
+            <h2 class="promo-section-title">โปรโมชั่นที่ใช้งานได้ตอนนี้</h2>
+            <p class="promo-section-sub">คลิกที่รหัสโปรโมชั่นเพื่อ copy แล้วนำไปใช้ได้เลย</p>
+
+            @if (!activePromos.Any())
+            {
+                <div class="promo-empty">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d4d4d8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 16px;">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                    <p style="font-size:1rem;font-weight:700;color:#0d0d10;margin:0 0 6px;">ยังไม่มีโปรโมชั่นในขณะนี้</p>
+                    <p style="font-size:.875rem;color:#6b6b80;margin:0;">ติดตามโปรโมชั่นใหม่ได้เร็วๆ นี้</p>
+                </div>
+            }
+            else
+            {
+                <div class="promo-grid">
+                    @foreach (var p in activePromos)
+                    {
+                        var userLabel = p.AllowedUserType switch {
+                            1 => ("ti-user-plus",  "ลูกค้าใหม่", "#eef2ff", "#3730a3"),
+                            2 => ("ti-star",       "ลูกค้าเก่า", "#fefce8", "#854d0e"),
+                            _ => ("ti-users",      "ทุกคน",      "#f0fdf4", "#166534")
+                        };
+                        var discountDisplay = p.DiscountType == 1
+                            ? $"{p.DiscountValue}%"
+                            : $"฿{p.DiscountValue:N0}";
+
+                        <div class="promo-card">
+                            <div class="promo-card-top">
+                                <div class="promo-card-discount">
+                                    @if (p.DiscountType == 1)
+                                    {
+                                        <span>@p.DiscountValue<sup>%</sup></span>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:2rem;">฿@p.DiscountValue.ToString("N0")</span>
+                                    }
+                                </div>
+                                <div class="promo-card-type">@(p.DiscountType == 1 ? "ส่วนลดเปอร์เซ็นต์" : "ส่วนลดจำนวนเงิน")</div>
+                                <div style="display:flex;gap:6px;align-items:center;">
+                                    <div class="promo-card-code-wrap"
+                                         onclick="copyCode('@p.PromoCode', this)"
+                                         title="คลิกเพื่อ copy รหัส">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                        @p.PromoCode
+                                    </div>
+                                    <a href="/Checkout?code=@p.PromoCode"
+                                       style="background:#22c55e;color:#fff;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;transition:background .15s;"
+                                       onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                        ใช้เลย
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="promo-card-body">
+                                <div class="promo-card-name">@p.PromoName</div>
+                                <div class="promo-card-meta">
+                                    <!-- สิทธิ์ผู้ใช้ -->
+                                    <span class="promo-chip" style="background:@userLabel.Item3;color:@userLabel.Item4;">
+                                        <i class="ti @userLabel.Item1" style="font-size:11px;"></i>
+                                        @userLabel.Item2
+                                    </span>
+                                    <!-- ซื้อขั้นต่ำ -->
+                                    @if (p.MinOrderAmount > 0)
+                                    {
+                                        <span class="promo-chip" style="background:#f8f8fa;color:#6b6b80;border:1px solid #ebebed;">
+                                            <i class="ti ti-shopping-cart" style="font-size:11px;"></i>
+                                            ขั้นต่ำ ฿@p.MinOrderAmount?.ToString("N0")
+                                        </span>
+                                    }
+                                    <!-- จำกัดครั้ง -->
+                                    @if (p.UsageLimitPerUser.HasValue)
+                                    {
+                                        <span class="promo-chip" style="background:#f8f8fa;color:#6b6b80;border:1px solid #ebebed;">
+                                            <i class="ti ti-clock" style="font-size:11px;"></i>
+                                            @p.UsageLimitPerUser ครั้ง/คน
+                                        </span>
+                                    }
+                                </div>
+                                <div class="promo-card-deadline">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    หมดอายุ <strong>@p.EndDate?.ToString("dd MMMM yyyy")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="promo-how">
+        <div class="container">
+            <h2 class="promo-section-title" style="text-align:center;">วิธีใช้โปรโมชั่น</h2>
+            <p class="promo-section-sub" style="text-align:center;">ง่ายมากแค่ 3 ขั้นตอน</p>
+            <div class="promo-steps">
+                <div class="promo-step">
+                    <div class="promo-step-num">1</div>
+                    <div class="promo-step-title">เลือกสินค้าที่ต้องการ</div>
+                    <p class="promo-step-desc">เพิ่มสินค้าลงตะกร้าและตรวจสอบให้ครบตามเงื่อนไขโปรโมชั่น</p>
+                </div>
+                <div class="promo-step">
+                    <div class="promo-step-num">2</div>
+                    <div class="promo-step-title">Copy รหัสโปรโมชั่น</div>
+                    <p class="promo-step-desc">คลิกที่รหัสในหน้านี้เพื่อ copy แล้วนำไปวางตอน Checkout</p>
+                </div>
+                <div class="promo-step">
+                    <div class="promo-step-num">3</div>
+                    <div class="promo-step-title">รับส่วนลดทันที</div>
+                    <p class="promo-step-desc">ระบบจะคำนวณส่วนลดให้อัตโนมัติ ไม่ต้องทำอะไรเพิ่ม</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="padding:56px 0;text-align:center;">
+        <div class="container">
+            <h3 style="font-size:1.5rem;font-weight:800;color:#0d0d10;margin:0 0 10px;letter-spacing:-.03em;">พร้อมช็อปแล้วใช่ไหม?</h3>
+            <p style="color:#6b6b80;margin:0 0 24px;font-size:.9rem;">ใช้โปรโมชั่นด้านบนแล้วไปเลือกสินค้าได้เลย</p>
+            <a asp-controller="Shop" asp-action="Index"
+               style="display:inline-flex;align-items:center;gap:8px;background:#0d0d10;color:#fff;border-radius:12px;padding:13px 28px;font-size:.9375rem;font-weight:700;text-decoration:none;transition:background .15s;"
+               onmouseover="this.style.background='#333'" onmouseout="this.style.background='#0d0d10'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                ไปหน้าสินค้า
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast -->
+<div class="promo-toast" id="promoToast">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="promoToastText">Copy แล้ว!</span>
+</div>
+
+@section Scripts {
+<script>
+function copyCode(code, el) {
+    navigator.clipboard.writeText(code).then(() => {
+        el.classList.add('copied');
+        el.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+        showToast('Copy รหัส ' + code + ' แล้ว!');
+        setTimeout(() => {
+            el.classList.remove('copied');
+            el.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> ' + code;
+        }, 2000);
+    });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('promoToast');
+    document.getElementById('promoToastText').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+}

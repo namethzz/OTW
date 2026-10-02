@@ -1,0 +1,376 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+    .db-page { font-family: 'Sora', system-ui, sans-serif; }
+
+    :root {
+        --s:#ffffff; --s2:#f8f8fa; --bd:#ebebed;
+        --t1:#0d0d10; --t2:#6b6b80; --t3:#b0b0c0;
+        --r:16px; --accent:#111113;
+    }
+
+    /* ── Greeting ── */
+    .db-greeting { margin-bottom: 28px; }
+    .db-greeting-title {
+        font-size: 1.45rem; font-weight: 800;
+        color: var(--t1); letter-spacing: -.03em; margin: 0 0 4px;
+    }
+    .db-greeting-sub { font-size: .825rem; color: var(--t2); margin: 0; }
+    .db-greeting-time { font-size: .75rem; color: var(--t3); }
+
+    /* ── KPI Grid ── */
+    .db-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px; margin-bottom: 24px;
+    }
+    .db-kpi {
+        background: var(--s); border: 1px solid var(--bd);
+        border-radius: var(--r); padding: 20px 22px;
+        position: relative; overflow: hidden;
+        transition: box-shadow .2s, transform .2s;
+        animation: kpiIn .3s ease both;
+    }
+    .db-kpi:hover { box-shadow: 0 8px 32px rgba(0,0,0,.08); transform: translateY(-3px); }
+    @@keyframes kpiIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+    .db-kpi:nth-child(1) { animation-delay: .04s; }
+    .db-kpi:nth-child(2) { animation-delay: .08s; }
+    .db-kpi:nth-child(3) { animation-delay: .12s; }
+    .db-kpi:nth-child(4) { animation-delay: .16s; }
+
+    .db-kpi-accent {
+        position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        border-radius: var(--r) var(--r) 0 0;
+    }
+    .db-kpi-icon {
+        width: 44px; height: 44px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; margin-bottom: 16px;
+    }
+    .db-kpi-value {
+        font-size: 1.75rem; font-weight: 800;
+        color: var(--t1); letter-spacing: -.04em;
+        line-height: 1; margin-bottom: 4px;
+    }
+    .db-kpi-label { font-size: .775rem; color: var(--t2); font-weight: 500; margin-bottom: 10px; }
+    .db-kpi-sub {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: .72rem; font-weight: 600;
+        padding: 3px 9px; border-radius: 99px;
+    }
+    .db-kpi-bg {
+        position: absolute; bottom: -20px; right: -16px;
+        font-size: 72px; opacity: .06; pointer-events: none;
+    }
+
+    /* ── Alert bar (pending returns) ── */
+    .db-alert-bar {
+        display: flex; align-items: center; gap: 12px;
+        background: #fffbeb; border: 1px solid #fde68a;
+        border-radius: var(--r); padding: 13px 18px;
+        margin-bottom: 20px; font-size: .8125rem;
+    }
+    .db-alert-bar-icon { font-size: 18px; flex-shrink: 0; }
+    .db-alert-bar a { color: #92400e; font-weight: 700; text-decoration: none; }
+    .db-alert-bar a:hover { text-decoration: underline; }
+
+    /* ── Two column layout ── */
+    .db-bottom { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+
+    /* ── Panel shared ── */
+    .db-panel {
+        background: var(--s); border: 1px solid var(--bd);
+        border-radius: var(--r); overflow: hidden;
+        animation: kpiIn .3s ease .2s both;
+    }
+    .db-panel-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 22px; border-bottom: 1px solid var(--bd);
+    }
+    .db-panel-title { font-size: .9rem; font-weight: 700; color: var(--t1); margin: 0; }
+    .db-panel-link {
+        font-size: .75rem; font-weight: 600; color: #6366f1;
+        text-decoration: none; display: flex; align-items: center; gap: 4px;
+        transition: gap .15s;
+    }
+    .db-panel-link:hover { gap: 7px; color: #4f46e5; }
+
+    /* ── Orders table ── */
+    .db-table { width: 100%; border-collapse: collapse; }
+    .db-table thead th {
+        font-size: .69rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .07em;
+        color: var(--t3); padding: 10px 22px;
+        background: var(--s2); border-bottom: 1px solid var(--bd);
+        white-space: nowrap;
+    }
+    .db-table tbody tr { border-bottom: 1px solid var(--bd); transition: background .12s; cursor: pointer; }
+    .db-table tbody tr:last-child { border-bottom: 0; }
+    .db-table tbody tr:hover { background: #fafafa; }
+    .db-table td { padding: 12px 22px; font-size: .8rem; color: var(--t1); vertical-align: middle; }
+
+    .db-order-id { font-weight: 700; color: var(--t2); }
+    .db-customer-name { font-weight: 600; font-size: .8rem; }
+    .db-customer-email { font-size: .72rem; color: var(--t3); }
+    .db-amount { font-weight: 700; color: var(--t1); }
+    .db-date-cell { font-size: .78rem; color: var(--t2); }
+    .db-date-cell small { font-size: .7rem; color: var(--t3); display: block; margin-top: 1px; }
+
+    .db-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 9px; border-radius: 99px;
+        font-size: .69rem; font-weight: 700; white-space: nowrap;
+    }
+    .db-bdot { width: 5px; height: 5px; border-radius: 50%; }
+
+    /* ── Stock list ── */
+    .db-stock-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 13px 22px; border-bottom: 1px solid var(--bd);
+        transition: background .12s;
+    }
+    .db-stock-item:last-child { border-bottom: 0; }
+    .db-stock-item:hover { background: var(--s2); }
+    .db-stock-img {
+        width: 40px; height: 40px; border-radius: 10px;
+        background: var(--s2); border: 1px solid var(--bd);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; flex-shrink: 0;
+    }
+    .db-stock-img img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+    .db-stock-name { font-size: .8rem; font-weight: 600; color: var(--t1); }
+    .db-stock-price { font-size: .72rem; color: var(--t3); margin-top: 2px; }
+    .db-stock-count {
+        margin-left: auto; flex-shrink: 0;
+        font-size: .72rem; font-weight: 700;
+        padding: 3px 10px; border-radius: 99px;
+        background: #fff1f2; color: #e11d48;
+        border: 1px solid #fecdd3;
+    }
+    .db-stock-bar { height: 3px; background: var(--bd); border-radius: 99px; margin-top: 4px; overflow: hidden; }
+    .db-stock-bar-fill { height: 100%; border-radius: 99px; background: #ef4444; }
+
+    @@media (max-width: 1024px) {
+        .db-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        .db-bottom { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 640px) {
+        .db-kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+
+<div class="db-page">
+
+    <!-- Greeting -->
+    <div class="db-greeting">
+        <h1 class="db-greeting-title">
+            สวัสดี, @Context.Session.GetString("FullName")! 👋
+        </h1>
+        <p class="db-greeting-sub">
+            ภาพรวมร้านค้าวันนี้ —
+            <span class="db-greeting-time">@DateTime.Now.ToString("dddd dd MMMM yyyy")</span>
+        </p>
+    </div>
+
+    <!-- Alert bar: pending returns -->
+    @if (ViewBag.PendingReturns > 0)
+    {
+        <div class="db-alert-bar">
+            <i class="ti ti-alert-triangle db-alert-bar-icon" style="color:#d97706;"></i>
+            <span>
+                มีคำขอคืน / เปลี่ยนสินค้าที่รอตรวจสอบ
+                <strong style="color:#92400e;">@ViewBag.PendingReturns รายการ</strong>
+            </span>
+            <a asp-controller="Admin" asp-action="Returns" style="margin-left:auto;">ดูเลย →</a>
+        </div>
+    }
+
+    <!-- KPI Cards -->
+    <div class="db-kpi-grid">
+
+        <!-- Orders -->
+        <div class="db-kpi">
+            <div class="db-kpi-accent" style="background:#6366f1;"></div>
+            <div class="db-kpi-icon" style="background:#f0f0ff;">
+                <i class="ti ti-receipt" style="color:#6366f1;"></i>
+            </div>
+            <div class="db-kpi-value">@ViewBag.TotalOrders</div>
+            <div class="db-kpi-label">คำสั่งซื้อทั้งหมด</div>
+            <span class="db-kpi-sub" style="background:#fefce8;color:#854d0e;">
+                <i class="ti ti-clock-hour-4" style="font-size:11px;"></i>
+                @ViewBag.PendingOrders รอดำเนินการ
+            </span>
+            <div class="db-kpi-bg"><i class="ti ti-receipt"></i></div>
+        </div>
+
+        <!-- Revenue -->
+        <div class="db-kpi">
+            <div class="db-kpi-accent" style="background:#22c55e;"></div>
+            <div class="db-kpi-icon" style="background:#f0fdf4;">
+                <i class="ti ti-currency-baht" style="color:#22c55e;"></i>
+            </div>
+            <div class="db-kpi-value" style="font-size:1.45rem;">฿@ViewBag.TotalRevenue.ToString("N0")</div>
+            <div class="db-kpi-label">รายได้รวม</div>
+            <span class="db-kpi-sub" style="background:#f0fdf4;color:#166534;">
+                <i class="ti ti-trending-up" style="font-size:11px;"></i>
+                จากคำสั่งซื้อทั้งหมด
+            </span>
+            <div class="db-kpi-bg"><i class="ti ti-currency-baht"></i></div>
+        </div>
+
+        <!-- Products -->
+        <div class="db-kpi">
+            <div class="db-kpi-accent" style="background:#f59e0b;"></div>
+            <div class="db-kpi-icon" style="background:#fffbeb;">
+                <i class="ti ti-box-seam" style="color:#f59e0b;"></i>
+            </div>
+            <div class="db-kpi-value">@ViewBag.TotalProducts</div>
+            <div class="db-kpi-label">สินค้าทั้งหมด</div>
+            @if (ViewBag.LowStock > 0)
+            {
+                <span class="db-kpi-sub" style="background:#fff1f2;color:#e11d48;">
+                    <i class="ti ti-alert-triangle" style="font-size:11px;"></i>
+                    @ViewBag.LowStock รายการ stock น้อย
+                </span>
+            }
+            else
+            {
+                <span class="db-kpi-sub" style="background:#f0fdf4;color:#166534;">
+                    <i class="ti ti-circle-check" style="font-size:11px;"></i>
+                    stock ปกติทุกรายการ
+                </span>
+            }
+            <div class="db-kpi-bg"><i class="ti ti-box-seam"></i></div>
+        </div>
+
+        <!-- Members -->
+        <div class="db-kpi">
+            <div class="db-kpi-accent" style="background:#0ea5e9;"></div>
+            <div class="db-kpi-icon" style="background:#f0f9ff;">
+                <i class="ti ti-users" style="color:#0ea5e9;"></i>
+            </div>
+            <div class="db-kpi-value">@ViewBag.TotalUsers</div>
+            <div class="db-kpi-label">สมาชิกทั้งหมด</div>
+            <span class="db-kpi-sub" style="background:#f0f9ff;color:#0369a1;">
+                <i class="ti ti-user-check" style="font-size:11px;"></i>
+                ลูกค้าที่ลงทะเบียน
+            </span>
+            <div class="db-kpi-bg"><i class="ti ti-users"></i></div>
+        </div>
+
+    </div>
+
+    <!-- Bottom: Recent Orders + Low Stock -->
+    <div class="db-bottom">
+
+        <!-- Recent Orders -->
+        <div class="db-panel">
+            <div class="db-panel-head">
+                <h5 class="db-panel-title">
+                    <i class="ti ti-receipt me-2" style="color:#6366f1;font-size:15px;"></i>
+                    คำสั่งซื้อล่าสุด
+                </h5>
+                <a asp-controller="Admin" asp-action="Orders" class="db-panel-link">
+                    ดูทั้งหมด <i class="ti ti-arrow-right" style="font-size:12px;"></i>
+                </a>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="db-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>ลูกค้า</th>
+                            <th>ยอดรวม</th>
+                            <th>วันที่</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in ViewBag.RecentOrders)
+                        {
+                            var badge = order.OrderStatus switch {
+                                1 => ("#fefce8", "#854d0e", "#f59e0b", "รอดำเนินการ"),
+                                2 => ("#f0f0ff", "#3730a3", "#6366f1", "กำลังจัดส่ง"),
+                                3 => ("#f0fdf4", "#166534", "#22c55e", "สำเร็จ"),
+                                4 => ("#fff1f2", "#9f1239", "#f43f5e", "ยกเลิก"),
+                                _ => ("#f4f4f5", "#71717a", "#a1a1aa", "ไม่ทราบ")
+                            };
+                            <tr onclick="window.location='/Admin/OrderDetail/@order.OrderId'">
+                                <td><span class="db-order-id">#@order.OrderId</span></td>
+                                <td>
+                                    <div class="db-customer-name">@order.User?.FullName</div>
+                                    <div class="db-customer-email">@order.User?.Email</div>
+                                </td>
+                                <td><span class="db-amount">฿@order.TotalPrice.ToString("N0")</span></td>
+                                <td>
+                                    <div class="db-date-cell">
+                                        @order.OrderDate?.ToString("dd/MM/yy")
+                                        <small>@order.OrderDate?.ToString("HH:mm")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="db-badge" style="background:@badge.Item1;color:@badge.Item2;">
+                                        <span class="db-bdot" style="background:@badge.Item3;"></span>
+                                        @badge.Item4
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="db-panel">
+            <div class="db-panel-head">
+                <h5 class="db-panel-title">
+                    <i class="ti ti-alert-triangle me-2" style="color:#f59e0b;font-size:15px;"></i>
+                    Stock ใกล้หมด
+                </h5>
+                <a asp-controller="Admin" asp-action="Products" class="db-panel-link">
+                    ดูทั้งหมด <i class="ti ti-arrow-right" style="font-size:12px;"></i>
+                </a>
+            </div>
+            @foreach (var p in ViewBag.LowStockProducts)
+            {
+                var pct = (int)Math.Min((double)p.Stock / 10.0 * 100, 100);
+                <div class="db-stock-item">
+                    <div class="db-stock-img">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl))
+                        {
+                            <img src="@p.ImageUrl" alt="@p.ProductName" />
+                        }
+                        else
+                        {
+                            <i class="ti ti-photo" style="color:#d4d4d8;font-size:18px;"></i>
+                        }
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="db-stock-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            @p.ProductName
+                        </div>
+                        <div class="db-stock-price">฿@p.Price.ToString("N0")</div>
+                        <div class="db-stock-bar">
+                            <div class="db-stock-bar-fill" style="width:@pct%;"></div>
+                        </div>
+                    </div>
+                    <div class="db-stock-count">@p.Stock เหลือ</div>
+                </div>
+            }
+            @if (((IEnumerable<object>)ViewBag.LowStockProducts).Count() == 0)
+            {
+                <div style="text-align:center;padding:40px 20px;color:var(--t3);">
+                    <i class="ti ti-circle-check" style="font-size:28px;color:#22c55e;display:block;margin-bottom:8px;"></i>
+                    <span style="font-size:.8125rem;">สินค้าทุกรายการมี stock เพียงพอ</span>
+                </div>
+            }
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,71 @@
+.hero-section {
+    background: #f8f9fa;
+    padding: 100px 0;
+}
+
+.flash-sale {
+    background: linear-gradient(45deg, #000, #333);
+}
+
+.product-card {
+    transition: 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+}
+
+.category-card {
+    background: #f1f1f1;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    border-radius: 15px;
+}
+
+.newsletter {
+    background: black;
+}
+
+.product-card img {
+    height: 250px;
+    object-fit: cover;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    transition: 0.3s;
+}
+
+.btn-dark {
+    background: black;
+}
+
+.btn-dark:hover {
+    background: #333;
+}
+
+.top-banner {
+    background-color: #000;
+    color: #fff;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.signup-link {
+    color: #fff;
+    text-decoration: underline;
+    font-weight: 500;
+    margin-left: 5px;
+}
+
+.signup-link:hover {
+    opacity: 0.8;
+}
+
+.top-banner {
+    transition: all 0.3s ease;
+}
+

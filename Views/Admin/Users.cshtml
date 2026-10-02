@@ -1,0 +1,401 @@
+@model IEnumerable<Project.Models.Db.User>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "จัดการสมาชิก";
+    var orderCounts  = ViewBag.OrderCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var customers    = Model.Where(u => u.Role != 1).ToList();
+    var newCustomers = customers.Where(u => !orderCounts.ContainsKey(u.UserId) || orderCounts[u.UserId] == 0).Count();
+    var returning    = customers.Where(u => orderCounts.ContainsKey(u.UserId) && orderCounts[u.UserId] > 0).Count();
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4 py-2"
+         style="font-size:.8375rem;" role="alert">
+        <i class="ti ti-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+    .um-page { font-family: 'Sora', system-ui, sans-serif; }
+
+    :root {
+        --s:  #ffffff; --s2: #f8f8fa; --bd: #ebebed;
+        --t1: #0d0d10; --t2: #6b6b80; --t3: #b0b0c0;
+        --new-bg: #eef2ff; --new-tx: #3730a3;
+        --ret-bg: #f0fdf4; --ret-tx: #166534;
+        --adm-bg: #fff1f2; --adm-tx: #9f1239;
+        --r: 14px;
+    }
+
+    /* Header */
+    .um-header {
+        display: flex; align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+    }
+    .um-title {
+        font-size: 1.35rem; font-weight: 700;
+        color: var(--t1); letter-spacing: -.025em; margin: 0 0 3px;
+    }
+    .um-sub { font-size: .8rem; color: var(--t2); margin: 0; }
+
+    /* Stat cards */
+    .um-stats {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 12px; margin-bottom: 22px;
+    }
+    .um-stat {
+        background: var(--s); border: 1px solid var(--bd);
+        border-radius: var(--r); padding: 16px 20px;
+        display: flex; align-items: center; gap: 14px;
+        transition: box-shadow .2s, transform .2s;
+    }
+    .um-stat:hover { box-shadow: 0 6px 24px rgba(0,0,0,.07); transform: translateY(-2px); }
+    .um-stat-icon {
+        width: 42px; height: 42px; border-radius: 11px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; flex-shrink: 0;
+    }
+    .um-stat-num { font-size: 1.6rem; font-weight: 700; color: var(--t1); line-height: 1; margin-bottom: 2px; }
+    .um-stat-label { font-size: .73rem; color: var(--t2); font-weight: 500; }
+
+    /* Toolbar */
+    .um-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .um-search { position: relative; flex: 1; min-width: 220px; max-width: 300px; }
+    .um-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--t3); pointer-events: none; }
+    .um-search input {
+        width: 100%; border: 1px solid var(--bd); border-radius: var(--r);
+        padding: 9px 12px 9px 34px; font-size: .8125rem;
+        font-family: 'Sora', sans-serif; color: var(--t1);
+        background: var(--s); outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .um-search input:focus { border-color: #aaa; box-shadow: 0 0 0 3px rgba(0,0,0,.05); }
+    .um-search input::placeholder { color: var(--t3); }
+    .um-filter {
+        border: 1px solid var(--bd); border-radius: var(--r);
+        padding: 9px 13px; font-size: .8125rem;
+        font-family: 'Sora', sans-serif; color: var(--t1);
+        background: var(--s); outline: none; cursor: pointer;
+    }
+    .um-count { margin-left: auto; font-size: .75rem; color: var(--t2); font-weight: 500; white-space: nowrap; }
+    .um-count strong { color: var(--t1); }
+
+    /* Table */
+    .um-card { background: var(--s); border: 1px solid var(--bd); border-radius: 18px; overflow: hidden; }
+    .um-table { width: 100%; border-collapse: collapse; }
+    .um-table thead th {
+        font-size: .69rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .07em;
+        color: var(--t3); padding: 11px 18px;
+        background: var(--s2); border-bottom: 1px solid var(--bd);
+        white-space: nowrap;
+    }
+    .um-table tbody tr { border-bottom: 1px solid var(--bd); transition: background .12s; }
+    .um-table tbody tr:last-child { border-bottom: 0; }
+    .um-table tbody tr:hover { background: #fafafa; }
+    .um-table td { padding: 13px 18px; font-size: .8125rem; color: var(--t1); vertical-align: middle; }
+
+    /* Avatar */
+    .um-av-wrap { display: flex; align-items: center; gap: 11px; }
+    .um-av {
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .um-name { font-weight: 600; color: var(--t1); font-size: .8375rem; }
+    .um-email-sub { font-size: .73rem; color: var(--t3); margin-top: 1px; }
+
+    /* Badges */
+    .um-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: .71rem; font-weight: 600; white-space: nowrap;
+    }
+    .um-bdot { width: 5px; height: 5px; border-radius: 50%; }
+    .um-ctype {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 11px; border-radius: 8px;
+        font-size: .73rem; font-weight: 600; white-space: nowrap;
+    }
+    .um-orders {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: var(--s2); border: 1px solid var(--bd);
+        border-radius: 999px; padding: 3px 10px;
+        font-size: .74rem; font-weight: 600; color: var(--t2);
+    }
+    .um-orders strong { color: var(--t1); }
+    .um-date-cell { font-size: .79rem; color: var(--t2); }
+    .um-date-cell small { display: block; font-size: .7rem; color: var(--t3); margin-top: 1px; }
+
+    /* Delete btn */
+    .um-del {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: none; border: 1px solid var(--bd);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--t3); cursor: pointer;
+        transition: background .15s, color .15s, border-color .15s;
+    }
+    .um-del:hover { background: #fff1f2; border-color: #fecdd3; color: #e11d48; }
+
+    /* Row animation */
+    .um-table tbody tr {
+        opacity: 0; animation: umRow .22s ease forwards;
+    }
+    @@keyframes umRow { to { opacity: 1; } }
+    .um-table tbody tr:nth-child(1)  { animation-delay: .04s; }
+    .um-table tbody tr:nth-child(2)  { animation-delay: .07s; }
+    .um-table tbody tr:nth-child(3)  { animation-delay: .10s; }
+    .um-table tbody tr:nth-child(4)  { animation-delay: .13s; }
+    .um-table tbody tr:nth-child(5)  { animation-delay: .16s; }
+    .um-table tbody tr:nth-child(6)  { animation-delay: .19s; }
+    .um-table tbody tr:nth-child(n+7){ animation-delay: .22s; }
+
+    /* Modal */
+    .um-modal-icon {
+        width: 52px; height: 52px; border-radius: 50%;
+        background: #fff1f2; border: 1px solid #fecdd3;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 14px;
+    }
+    .um-mc { background: none; border: 1px solid var(--bd); border-radius: 10px; padding: 10px 20px; font-family: 'Sora', sans-serif; font-size: .875rem; color: var(--t2); cursor: pointer; transition: background .15s; }
+    .um-mc:hover { background: var(--s2); }
+    .um-md { background: #e11d48; border: none; color: #fff; border-radius: 10px; padding: 10px 24px; font-family: 'Sora', sans-serif; font-size: .875rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .um-md:hover { background: #be123c; }
+
+    @@media (max-width: 768px) { .um-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="um-page">
+
+    <!-- Header -->
+    <div class="um-header">
+        <div>
+            <h1 class="um-title">จัดการสมาชิก</h1>
+            <p class="um-sub">ดูและจัดการบัญชีสมาชิกทั้งหมดในระบบ</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="um-stats">
+        <div class="um-stat">
+            <div class="um-stat-icon" style="background:#f0f0ff;">
+                <i class="ti ti-users" style="color:#6366f1;"></i>
+            </div>
+            <div>
+                <div class="um-stat-num">@customers.Count</div>
+                <div class="um-stat-label">สมาชิกทั้งหมด</div>
+            </div>
+        </div>
+        <div class="um-stat">
+            <div class="um-stat-icon" style="background:var(--new-bg);">
+                <i class="ti ti-sparkles" style="color:var(--new-tx);"></i>
+            </div>
+            <div>
+                <div class="um-stat-num">@newCustomers</div>
+                <div class="um-stat-label">ลูกค้าใหม่</div>
+            </div>
+        </div>
+        <div class="um-stat">
+            <div class="um-stat-icon" style="background:var(--ret-bg);">
+                <i class="ti ti-star" style="color:var(--ret-tx);"></i>
+            </div>
+            <div>
+                <div class="um-stat-num">@returning</div>
+                <div class="um-stat-label">ลูกค้าเก่า</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="um-toolbar">
+        <div class="um-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="umSearch" placeholder="ค้นหาชื่อ หรืออีเมล..." oninput="filterUsers()" />
+        </div>
+        <select class="um-filter" id="umFilter" onchange="filterUsers()">
+            <option value="">ทุกประเภท</option>
+            <option value="new">ลูกค้าใหม่</option>
+            <option value="returning">ลูกค้าเก่า</option>
+            <option value="admin">Admin</option>
+        </select>
+        <div class="um-count">แสดง <strong id="umCount">@Model.Count()</strong> คน</div>
+    </div>
+
+    <!-- Table -->
+    <div class="um-card">
+        <table class="um-table" id="umTable">
+            <thead>
+                <tr>
+                    <th>สมาชิก</th>
+                    <th>เบอร์โทร</th>
+                    <th>บทบาท</th>
+                    <th>สถานะลูกค้า</th>
+                    <th>ออเดอร์</th>
+                    <th>วันที่สมัคร</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var avatarColors = new[] { "#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899" };
+                }
+                @foreach (var u in Model)
+                {
+                    var cnt        = orderCounts.ContainsKey(u.UserId) ? orderCounts[u.UserId] : 0;
+                    var isNew      = u.Role != 1 && cnt == 0;
+                    var isRet      = u.Role != 1 && cnt > 0;
+                    var fTag       = u.Role == 1 ? "admin" : isNew ? "new" : "returning";
+                    var avColor    = avatarColors[Math.Abs(u.FullName.GetHashCode()) % avatarColors.Length];
+                    var init       = u.FullName.Length > 0 ? u.FullName.Substring(0, 1).ToUpper() : "?";
+
+                    <tr data-search="@($"{u.FullName} {u.Email}".ToLower())" data-filter="@fTag">
+
+                        <td>
+                            <div class="um-av-wrap">
+                                <div class="um-av" style="background:@avColor">@init</div>
+                                <div>
+                                    <div class="um-name">@u.FullName</div>
+                                    <div class="um-email-sub">@u.Email</div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td style="color:var(--t2);">@(u.Phone ?? "—")</td>
+
+                        <td>
+                            @if (u.Role == 1)
+                            {
+                                <span class="um-badge" style="background:var(--adm-bg);color:var(--adm-tx);">
+                                    <span class="um-bdot" style="background:var(--adm-tx);"></span>Admin
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="um-badge" style="background:#f0f0ff;color:#6366f1;">
+                                    <span class="um-bdot" style="background:#6366f1;"></span>Customer
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (u.Role == 1)
+                            {
+                                <span style="color:var(--t3);font-size:.8rem;">—</span>
+                            }
+                            else if (isNew)
+                            {
+                                <span class="um-ctype" style="background:var(--new-bg);color:var(--new-tx);">
+                                    <i class="ti ti-sparkles" style="font-size:11px;"></i>ลูกค้าใหม่
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="um-ctype" style="background:var(--ret-bg);color:var(--ret-tx);">
+                                    <i class="ti ti-star" style="font-size:11px;"></i>ลูกค้าเก่า
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (u.Role != 1)
+                            {
+                                <span class="um-orders">
+                                    <i class="ti ti-shopping-bag" style="font-size:11px;"></i>
+                                    <strong>@cnt</strong> ครั้ง
+                                </span>
+                            }
+                            else { <span style="color:var(--t3);">—</span> }
+                        </td>
+
+                        <td>
+                            <div class="um-date-cell">
+                                @u.CreatedAt?.ToString("dd/MM/yyyy")
+                                <small>@u.CreatedAt?.ToString("HH:mm น.")</small>
+                            </div>
+                        </td>
+
+                        <td>
+                            @if (u.Role != 1)
+                            {
+                                <button class="um-del"
+                                        onclick="confirmDelete(@u.UserId, '@u.FullName.Replace("'", "\\'")')">
+                                    <i class="ti ti-trash" style="font-size:14px;"></i>
+                                </button>
+                            }
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.Any())
+        {
+            <div style="text-align:center;padding:60px 24px;">
+                <div class="um-modal-icon" style="margin:0 auto 14px;">
+                    <i class="ti ti-users-group" style="font-size:22px;color:#b0b0c0;"></i>
+                </div>
+                <p style="font-weight:600;color:var(--t1);margin:0 0 4px;">ไม่พบสมาชิก</p>
+                <p style="font-size:.8125rem;color:var(--t2);margin:0;">ยังไม่มีสมาชิกในระบบ</p>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" id="umDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-body text-center p-5">
+                <div class="um-modal-icon">
+                    <i class="ti ti-trash" style="font-size:20px;color:#e11d48;"></i>
+                </div>
+                <h5 class="fw-bold mb-1" style="font-family:'Sora',sans-serif;font-size:1rem;">
+                    ยืนยันการลบสมาชิก?
+                </h5>
+                <p class="text-muted mb-1" style="font-size:.8125rem;">
+                    คุณกำลังจะลบ <strong id="umDelName" style="color:#0d0d10;"></strong>
+                </p>
+                <p class="mb-4" style="font-size:.75rem;color:#e11d48;">
+                    Orders, Reviews และ Returns ทั้งหมดจะถูกลบด้วย
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="um-mc" data-bs-dismiss="modal">ยกเลิก</button>
+                    <a id="umDelBtn" href="#" class="um-md">
+                        <i class="ti ti-trash me-1"></i>ลบเลย
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function filterUsers() {
+    const q = document.getElementById('umSearch').value.toLowerCase();
+    const f = document.getElementById('umFilter').value;
+    let n = 0;
+    document.querySelectorAll('#umTable tbody tr').forEach(row => {
+        const show = (!q || (row.dataset.search||'').includes(q))
+                  && (!f || row.dataset.filter === f);
+        row.style.display = show ? '' : 'none';
+        if (show) n++;
+    });
+    document.getElementById('umCount').textContent = n;
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('umDelName').textContent = name;
+    document.getElementById('umDelBtn').href = '/Admin/DeleteUser/' + id;
+    new bootstrap.Modal(document.getElementById('umDeleteModal')).show();
+}
+</script>
+}

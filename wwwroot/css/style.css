@@ -1,0 +1,95 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  font-family: Arial, sans-serif;
+  overflow-x: hidden;
+} /* Layout หลัก */
+.auth-wrapper {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+} /* ฝั่งฟอร์ม */
+.form-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f8f8f8;
+}
+.form-box {
+  width: 420px;
+}
+.form-box h1 {
+  font-size: 32px;
+  margin-bottom: 30px;
+} /* Form */
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+input:focus {
+  outline: none;
+  border-color: #3f5f1e;
+} /* Terms */
+.terms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+} /* Button */
+.btn-primary {
+  padding: 14px;
+  background: #3f5f1e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: #2f4816;
+} /* Login link */
+.login-link {
+  margin-top: 20px;
+  font-size: 14px;
+}
+.login-link a {
+  font-weight: bold;
+  text-decoration: none;
+  color: #3f5f1e;
+}
+.image-section {
+  flex: 1;
+  overflow: hidden;
+  position: relative; /* เพิ่มอันนี้ */
+}
+.image-section img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-top-left-radius: 40px;
+  border-bottom-left-radius: 40px;
+}

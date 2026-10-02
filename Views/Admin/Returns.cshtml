@@ -1,0 +1,833 @@
+@model List<Project.Models.Db.Return>
+
+@{
+    ViewData["Title"] = "คำขอคืน / เปลี่ยนสินค้า";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var pending  = Model?.Where(r => r.Status == 0).ToList() ?? new();
+    var approved = Model?.Where(r => r.Status == 1).ToList() ?? new();
+    var rejected = Model?.Where(r => r.Status == 2).ToList() ?? new();
+    var all      = Model ?? new();
+}
+
+<style>
+    /* ── Variables ── */
+    :root {
+        --surface:   #ffffff;
+        --surface-2: #f7f7f8;
+        --border:    #ebebec;
+        --text-1:    #111113;
+        --text-2:    #6b6b7b;
+        --text-3:    #a0a0b0;
+        --accent:    #111113;
+        --pending-bg:  #fffbeb; --pending-text:  #92400e; --pending-dot:  #f59e0b;
+        --approved-bg: #f0fdf4; --approved-text: #166534; --approved-dot: #22c55e;
+        --rejected-bg: #fff1f2; --rejected-text: #9f1239; --rejected-dot: #f43f5e;
+        --radius: 12px;
+    }
+
+    /* ── Page ── */
+    .rp-wrap { padding: 0 4px; }
+
+    /* ── Page header ── */
+    .rp-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .rp-title {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--text-1);
+        letter-spacing: -.02em;
+        margin: 0 0 3px;
+        font-family: 'DM Sans', system-ui, sans-serif;
+    }
+    .rp-subtitle { font-size: .8125rem; color: var(--text-2); margin: 0; }
+
+    /* ── Stat pills ── */
+    .rp-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .rp-stat {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: .8rem; font-weight: 500; color: var(--text-2);
+        white-space: nowrap;
+    }
+    .rp-stat-dot {
+        width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .rp-stat strong { color: var(--text-1); font-weight: 700; }
+
+    /* ── Tab bar ── */
+    .rp-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 1.5px solid var(--border);
+        margin-bottom: 20px;
+    }
+    .rp-tab {
+        display: flex; align-items: center; gap: 7px;
+        padding: 10px 16px;
+        font-size: .8125rem; font-weight: 500;
+        color: var(--text-2); background: none; border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1.5px;
+        cursor: pointer; border-radius: 0;
+        transition: color .15s, border-color .15s;
+        white-space: nowrap;
+    }
+    .rp-tab:hover { color: var(--text-1); }
+    .rp-tab.active { color: var(--text-1); border-bottom-color: var(--text-1); }
+    .rp-tab-count {
+        font-size: .7rem; font-weight: 700;
+        padding: 1px 7px; border-radius: 99px;
+        background: #f0f0f2; color: var(--text-2);
+        transition: background .15s, color .15s;
+    }
+    .rp-tab.active .rp-tab-count { background: var(--text-1); color: #fff; }
+
+    /* ── Search bar ── */
+    .rp-search-wrap {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .rp-search {
+        position: relative; flex: 1; min-width: 200px; max-width: 340px;
+    }
+    .rp-search svg {
+        position: absolute; left: 11px; top: 50%;
+        transform: translateY(-50%); color: var(--text-3); pointer-events: none;
+    }
+    .rp-search input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 12px 8px 34px;
+        font-size: .8125rem; color: var(--text-1);
+        background: var(--surface);
+        outline: none;
+        transition: border-color .15s;
+    }
+    .rp-search input:focus { border-color: #aaa; }
+    .rp-search input::placeholder { color: var(--text-3); }
+    .rp-filter-type {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        font-size: .8125rem; color: var(--text-1);
+        background: var(--surface);
+        outline: none; cursor: pointer;
+    }
+
+    /* ── Table ── */
+    .rp-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .rp-table {
+        width: 100%; border-collapse: collapse;
+    }
+    .rp-table thead th {
+        font-size: .72rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3);
+        padding: 11px 16px;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+    .rp-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background .12s;
+    }
+    .rp-table tbody tr:last-child { border-bottom: 0; }
+    .rp-table tbody tr:hover { background: var(--surface-2); }
+    .rp-table td {
+        padding: 13px 16px;
+        font-size: .8125rem;
+        color: var(--text-1);
+        vertical-align: middle;
+    }
+
+    /* ── Status badge ── */
+    .rp-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 99px;
+        font-size: .72rem; font-weight: 600; white-space: nowrap;
+    }
+    .rp-badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-pending  { background: var(--pending-bg);  color: var(--pending-text); }
+    .badge-approved { background: var(--approved-bg); color: var(--approved-text); }
+    .badge-rejected { background: var(--rejected-bg); color: var(--rejected-text); }
+    .dot-pending  { background: var(--pending-dot); }
+    .dot-approved { background: var(--approved-dot); }
+    .dot-rejected { background: var(--rejected-dot); }
+
+    /* ── Type chip ── */
+    .rp-type {
+        display: inline-block;
+        padding: 2px 9px; border-radius: 6px;
+        font-size: .72rem; font-weight: 500;
+        background: #f0f0f2; color: var(--text-2);
+    }
+
+    /* ── Customer cell ── */
+    .rp-customer { display: flex; align-items: center; gap: 9px; }
+    .rp-avatar {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: var(--text-1); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .7rem; font-weight: 700; flex-shrink: 0;
+    }
+    .rp-customer-name { font-weight: 500; color: var(--text-1); }
+    .rp-customer-email { font-size: .74rem; color: var(--text-3); }
+
+    /* ── Action buttons ── */
+    .rp-actions { display: flex; align-items: center; gap: 6px; }
+    .rp-btn-approve, .rp-btn-reject {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 5px 11px; border-radius: 8px;
+        font-size: .75rem; font-weight: 600;
+        border: none; cursor: pointer;
+        transition: opacity .15s, transform .1s;
+        white-space: nowrap;
+    }
+    .rp-btn-approve:hover, .rp-btn-reject:hover { opacity: .85; transform: translateY(-1px); }
+    .rp-btn-approve { background: #dcfce7; color: #166534; }
+    .rp-btn-reject  { background: #ffe4e6; color: #9f1239; }
+    .rp-done-label {
+        font-size: .75rem; font-weight: 500; color: var(--text-3);
+        padding: 5px 4px;
+    }
+
+    /* ── Image thumb ── */
+    .rp-proof-thumb {
+        width: 36px; height: 36px; border-radius: 7px;
+        object-fit: cover; border: 1px solid var(--border);
+        cursor: pointer; transition: transform .15s;
+    }
+    .rp-proof-thumb:hover { transform: scale(1.1); }
+    .rp-no-proof { font-size: .72rem; color: var(--text-3); }
+
+    /* ── Empty ── */
+    .rp-empty {
+        text-align: center; padding: 60px 20px;
+        background: var(--surface);
+        border: 1px solid var(--border); border-radius: 16px;
+    }
+    .rp-empty-icon {
+        width: 56px; height: 56px; border-radius: 50%;
+        background: var(--surface-2); margin: 0 auto 14px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-3);
+    }
+    .rp-empty h5 { font-size: .9375rem; font-weight: 600; color: var(--text-1); margin: 0 0 5px; }
+    .rp-empty p  { font-size: .8125rem; color: var(--text-2); margin: 0; }
+
+    /* ── Image modal ── */
+    .rp-img-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.7); z-index: 9999;
+        align-items: center; justify-content: center;
+    }
+    .rp-img-overlay.open { display: flex; }
+    .rp-img-overlay img {
+        max-width: 90vw; max-height: 85vh;
+        border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,.5);
+    }
+    .rp-img-close {
+        position: absolute; top: 20px; right: 24px;
+        background: rgba(255,255,255,.15); border: none;
+        color: #fff; font-size: 1.5rem;
+        width: 40px; height: 40px; border-radius: 50%;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: background .15s;
+    }
+    .rp-img-close:hover { background: rgba(255,255,255,.25); }
+
+    /* ── Note tooltip row ── */
+    .rp-note-cell {
+        max-width: 180px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        color: var(--text-2);
+        font-size: .78rem;
+    }
+
+    /* ── Drawer ── */
+    .rp-drawer-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.35); z-index: 1100;
+        backdrop-filter: blur(2px);
+    }
+    .rp-drawer-overlay.open { display: block; }
+    .rp-drawer {
+        position: fixed; top: 0; right: -480px; bottom: 0;
+        width: 460px; max-width: 95vw;
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        box-shadow: -8px 0 40px rgba(0,0,0,.12);
+        z-index: 1101;
+        display: flex; flex-direction: column;
+        transition: right .28s cubic-bezier(.4,0,.2,1);
+        overflow: hidden;
+    }
+    .rp-drawer.open { right: 0; }
+    .rp-drawer-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .rp-drawer-head-left { display: flex; align-items: center; gap: 10px; }
+    .rp-drawer-id {
+        font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--text-3);
+    }
+    .rp-drawer-close {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: var(--text-2);
+        transition: background .15s;
+    }
+    .rp-drawer-close:hover { background: var(--border); }
+    .rp-drawer-body {
+        flex: 1; overflow-y: auto; padding: 22px;
+    }
+    .rp-drawer-body::-webkit-scrollbar { width: 4px; }
+    .rp-drawer-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    .rp-drawer-foot {
+        padding: 16px 22px;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+
+    /* Drawer sections */
+    .rp-ds { margin-bottom: 22px; }
+    .rp-ds-label {
+        font-size: .7rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; color: var(--text-3);
+        margin-bottom: 10px;
+    }
+    .rp-ds-card {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 14px 16px;
+    }
+    .rp-ds-row {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        font-size: .8125rem; margin-bottom: 8px; gap: 12px;
+    }
+    .rp-ds-row:last-child { margin-bottom: 0; }
+    .rp-ds-key { color: var(--text-2); flex-shrink: 0; }
+    .rp-ds-val { color: var(--text-1); font-weight: 500; text-align: right; }
+
+    /* Product list in drawer */
+    .rp-prod-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .rp-prod-item:last-child { border-bottom: 0; }
+    .rp-prod-img {
+        width: 44px; height: 44px; border-radius: 8px;
+        background: var(--surface); border: 1px solid var(--border);
+        object-fit: contain; padding: 4px; flex-shrink: 0;
+    }
+    .rp-prod-img-placeholder {
+        width: 44px; height: 44px; border-radius: 8px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-3); flex-shrink: 0;
+    }
+    .rp-prod-name { font-size: .8125rem; font-weight: 500; color: var(--text-1); }
+    .rp-prod-meta { font-size: .75rem; color: var(--text-3); margin-top: 2px; }
+
+    /* Proof image in drawer */
+    .rp-drawer-proof {
+        width: 100%; border-radius: var(--radius);
+        border: 1px solid var(--border);
+        cursor: pointer; transition: opacity .15s;
+        object-fit: cover; max-height: 200px;
+    }
+    .rp-drawer-proof:hover { opacity: .9; }
+
+    /* Drawer action buttons */
+    .rp-drawer-actions { display: flex; gap: 10px; }
+    .rp-drawer-btn-approve, .rp-drawer-btn-reject {
+        flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 11px; border-radius: 10px;
+        font-size: .875rem; font-weight: 600;
+        border: none; cursor: pointer;
+        transition: opacity .15s, transform .1s;
+    }
+    .rp-drawer-btn-approve:hover, .rp-drawer-btn-reject:hover {
+        opacity: .88; transform: translateY(-1px);
+    }
+    .rp-drawer-btn-approve { background: #dcfce7; color: #166534; }
+    .rp-drawer-btn-reject  { background: #ffe4e6; color: #9f1239; }
+    .rp-drawer-done {
+        text-align: center; font-size: .8125rem; color: var(--text-2);
+        padding: 8px;
+    }
+    .rp-drawer-done strong { color: var(--text-1); }
+
+    /* highlight hovered row */
+    .rp-table tbody tr { cursor: pointer; }
+</style>
+
+<div class="rp-wrap">
+
+    <!-- Alert -->
+    @if (TempData["ReturnMsg"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4 py-2"
+             style="font-size:.8375rem;" role="alert">
+            <i class="ti ti-circle-check me-2"></i>@TempData["ReturnMsg"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="rp-header">
+        <div>
+            <h1 class="rp-title">คำขอคืน / เปลี่ยนสินค้า</h1>
+            <p class="rp-subtitle">ตรวจสอบและอนุมัติคำขอของลูกค้า</p>
+        </div>
+        <div class="rp-stats">
+            <div class="rp-stat">
+                <span class="rp-stat-dot" style="background:var(--pending-dot)"></span>
+                รอตรวจสอบ <strong>@pending.Count</strong>
+            </div>
+            <div class="rp-stat">
+                <span class="rp-stat-dot" style="background:var(--approved-dot)"></span>
+                อนุมัติ <strong>@approved.Count</strong>
+            </div>
+            <div class="rp-stat">
+                <span class="rp-stat-dot" style="background:var(--rejected-dot)"></span>
+                ปฏิเสธ <strong>@rejected.Count</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="rp-tabs">
+        <button class="rp-tab active" onclick="switchTab('all', this)">
+            ทั้งหมด <span class="rp-tab-count">@all.Count</span>
+        </button>
+        <button class="rp-tab" onclick="switchTab('pending', this)">
+            รอตรวจสอบ <span class="rp-tab-count">@pending.Count</span>
+        </button>
+        <button class="rp-tab" onclick="switchTab('approved', this)">
+            อนุมัติแล้ว <span class="rp-tab-count">@approved.Count</span>
+        </button>
+        <button class="rp-tab" onclick="switchTab('rejected', this)">
+            ปฏิเสธแล้ว <span class="rp-tab-count">@rejected.Count</span>
+        </button>
+    </div>
+
+    @if (!all.Any())
+    {
+        <div class="rp-empty">
+            <div class="rp-empty-icon">
+                <i class="ti ti-inbox" style="font-size:22px"></i>
+            </div>
+            <h5>ยังไม่มีคำขอ</h5>
+            <p>เมื่อลูกค้ายื่นคำขอ รายการจะแสดงที่นี่</p>
+        </div>
+    }
+    else
+    {
+        <!-- Search + Filter -->
+        <div class="rp-search-wrap">
+            <div class="rp-search">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="rpSearch" placeholder="ค้นหาชื่อลูกค้า, #คำขอ, #ออเดอร์..."
+                       oninput="filterTable()" />
+            </div>
+            <select class="rp-filter-type" id="rpType" onchange="filterTable()">
+                <option value="">ทุกประเภท</option>
+                <option value="คืนเงิน">คืนเงิน</option>
+                <option value="เปลี่ยนสินค้า">เปลี่ยนสินค้า</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <div class="rp-table-wrap">
+            <table class="rp-table" id="rpTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ลูกค้า</th>
+                        <th>ออเดอร์</th>
+                        <th>ประเภท</th>
+                        <th>เหตุผล</th>
+                        <th>หมายเหตุ</th>
+                        <th>หลักฐาน</th>
+                        <th>วันที่</th>
+                        <th>สถานะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in all)
+                    {
+                        var statusTab = item.Status == 0 ? "pending" : item.Status == 1 ? "approved" : "rejected";
+                        var customerName = item.User?.FullName ?? "-";
+                        var initial = customerName.Length > 0 ? customerName.Substring(0, 1).ToUpper() : "?";
+
+                        <tr data-tab="@statusTab"
+                            data-search="@($"#{item.ReturnId} #{item.OrderId} {customerName} {item.User?.Email}".ToLower())"
+                            data-type="@item.ReturnType"
+                            onclick="openDrawer(@item.ReturnId)">
+
+                            <td style="font-weight:600; color:var(--text-2);">#@item.ReturnId</td>
+
+                            <td>
+                                <div class="rp-customer">
+                                    <div class="rp-avatar">@initial</div>
+                                    <div>
+                                        <div class="rp-customer-name">@customerName</div>
+                                        <div class="rp-customer-email">@item.User?.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <a href="/Admin/OrderDetail/@item.OrderId"
+                                   style="color:var(--text-1);font-weight:600;text-decoration:none;"
+                                   onclick="event.stopPropagation()">
+                                    #@item.OrderId
+                                </a>
+                            </td>
+
+                            <td><span class="rp-type">@item.ReturnType</span></td>
+
+                            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                @item.Reason
+                            </td>
+
+                            <td>
+                                <div class="rp-note-cell" title="@item.Note">
+                                    @(string.IsNullOrWhiteSpace(item.Note) ? "-" : item.Note)
+                                </div>
+                            </td>
+
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" class="rp-proof-thumb"
+                                         onclick="openImg('@item.ImageUrl'); event.stopPropagation();"
+                                         title="คลิกดูรูปขยาย" />
+                                }
+                                else
+                                {
+                                    <span class="rp-no-proof">ไม่มี</span>
+                                }
+                            </td>
+
+                            <td style="white-space:nowrap; color:var(--text-2);">
+                                @item.CreatedAt.ToString("dd/MM/yy")<br/>
+                                <span style="font-size:.72rem;color:var(--text-3);">
+                                    @item.CreatedAt.ToString("HH:mm")
+                                </span>
+                            </td>
+
+                            <td>
+                                @if (item.Status == 0)
+                                {
+                                    <span class="rp-badge badge-pending">
+                                        <span class="rp-badge-dot dot-pending"></span>รอตรวจสอบ
+                                    </span>
+                                }
+                                else if (item.Status == 1)
+                                {
+                                    <span class="rp-badge badge-approved">
+                                        <span class="rp-badge-dot dot-approved"></span>อนุมัติแล้ว
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="rp-badge badge-rejected">
+                                        <span class="rp-badge-dot dot-rejected"></span>ปฏิเสธแล้ว
+                                    </span>
+                                }
+                            </td>
+
+                            <td onclick="event.stopPropagation()">
+                                @if (item.Status == 0)
+                                {
+                                    <div class="rp-actions">
+                                        <form asp-controller="Admin" asp-action="ReviewReturn"
+                                              method="post" style="margin:0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="returnId" value="@item.ReturnId" />
+                                            <input type="hidden" name="status" value="1" />
+                                            <button type="submit" class="rp-btn-approve">
+                                                <i class="ti ti-check" style="font-size:12px"></i> อนุมัติ
+                                            </button>
+                                        </form>
+                                        <form asp-controller="Admin" asp-action="ReviewReturn"
+                                              method="post" style="margin:0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="returnId" value="@item.ReturnId" />
+                                            <input type="hidden" name="status" value="2" />
+                                            <button type="submit" class="rp-btn-reject">
+                                                <i class="ti ti-x" style="font-size:12px"></i> ปฏิเสธ
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="rp-done-label">
+                                        @(item.ReviewedAt != null
+                                            ? item.ReviewedAt.Value.ToString("dd/MM/yy HH:mm")
+                                            : "—")
+                                    </span>
+                                }
+                            </td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Row count -->
+        <div style="text-align:right;font-size:.75rem;color:var(--text-3);margin-top:10px;">
+            แสดง <span id="rpCount">@all.Count</span> รายการ
+        </div>
+    }
+
+</div>
+
+
+<!-- ══ Drawer Overlay ══ -->
+<div class="rp-drawer-overlay" id="rpDrawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- ══ Drawer Panel ══ -->
+<div class="rp-drawer" id="rpDrawer">
+    <div class="rp-drawer-head">
+        <div class="rp-drawer-head-left">
+            <span class="rp-drawer-id" id="dw-id"></span>
+            <span id="dw-badge"></span>
+        </div>
+        <button class="rp-drawer-close" onclick="closeDrawer()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+    </div>
+    <div class="rp-drawer-body" id="rpDrawerBody">
+        <!-- populated by JS -->
+    </div>
+    <div class="rp-drawer-foot" id="rpDrawerFoot">
+        <!-- action buttons populated by JS -->
+    </div>
+</div>
+
+<!-- ══ Hidden data for drawer ══ -->
+<div id="rpData" style="display:none">
+@foreach (var item in all)
+    {
+        var dCustomer   = item.User?.FullName ?? "-";
+        var dEmail      = item.User?.Email ?? "-";
+        var dOrderId    = item.OrderId;
+        var dType       = item.ReturnType ?? "-";
+        var dReason     = item.Reason ?? "-";
+        var dNote       = string.IsNullOrWhiteSpace(item.Note) ? "ไม่มีหมายเหตุ" : item.Note;
+        var dImage      = item.ImageUrl ?? "";
+        var dStatus     = item.Status;
+        var dCreated    = item.CreatedAt.ToString("dd/MM/yyyy HH:mm");
+        var dReviewed   = item.ReviewedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-";
+        var dProducts   = item.Order?.OrderDetails?.ToList() ?? new List<Project.Models.Db.OrderDetail>();
+        var dTotal      = item.Order?.TotalPrice ?? 0;
+
+        <div class="rp-data-item"
+             data-id="@item.ReturnId"
+             data-customer="@dCustomer"
+             data-email="@dEmail"
+             data-order="@dOrderId"
+             data-type="@dType"
+             data-reason="@dReason"
+             data-note="@dNote"
+             data-image="@dImage"
+             data-status="@dStatus"
+             data-created="@dCreated"
+             data-reviewed="@dReviewed"
+             data-total="@dTotal.ToString("N2")"
+             data-products="@System.Text.Json.JsonSerializer.Serialize(dProducts.Select(p => new { name = p.Product?.ProductName ?? "-", qty = p.Quantity, price = p.Price.ToString("N0"), img = p.Product?.ImageUrl ?? "" }))">
+        </div>
+    }
+</div>
+
+<!-- Image overlay -->
+<div class="rp-img-overlay" id="rpImgOverlay" onclick="closeImg()">
+    <button class="rp-img-close" onclick="closeImg()">×</button>
+    <img id="rpImgFull" src="" alt="หลักฐาน" onclick="event.stopPropagation()" />
+</div>
+
+@section Scripts {
+<script>
+let currentTab = 'all';
+
+function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.rp-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    filterTable();
+}
+
+function filterTable() {
+    const q    = document.getElementById('rpSearch').value.toLowerCase();
+    const type = document.getElementById('rpType').value;
+    const rows = document.querySelectorAll('#rpTable tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const show = (currentTab === 'all' || row.dataset.tab === currentTab)
+                  && (!q    || (row.dataset.search || '').includes(q))
+                  && (!type || (row.dataset.type   || '') === type);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('rpCount').textContent = visible;
+}
+
+function openImg(url) {
+    document.getElementById('rpImgFull').src = url;
+    document.getElementById('rpImgOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeImg() {
+    document.getElementById('rpImgOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+// ── Drawer ──
+const statusMeta = {
+    0: { label: 'รอตรวจสอบ',  cls: 'badge-pending',  dot: 'dot-pending'  },
+    1: { label: 'อนุมัติแล้ว', cls: 'badge-approved', dot: 'dot-approved' },
+    2: { label: 'ปฏิเสธแล้ว', cls: 'badge-rejected',  dot: 'dot-rejected' },
+};
+
+function openDrawer(id) {
+    const el = document.querySelector('.rp-data-item[data-id="' + id + '"]');
+    if (!el) return;
+    const d = el.dataset;
+    const meta = statusMeta[+d.status] || statusMeta[0];
+    let products = [];
+    try { products = JSON.parse(d.products); } catch(e) {}
+
+    document.getElementById('dw-id').textContent = 'คำขอ #' + d.id;
+    document.getElementById('dw-badge').innerHTML =
+        '<span class="rp-badge ' + meta.cls + '"><span class="rp-badge-dot ' + meta.dot + '"></span>' + meta.label + '</span>';
+
+    const initials = d.customer.charAt(0).toUpperCase();
+    const proofHTML = d.image
+        ? '<img src="' + d.image + '" class="rp-drawer-proof" onclick="openImg(\'' + d.image + '\'); event.stopPropagation();" />'
+        : '<div style="color:var(--text-3);font-size:.8125rem;padding:8px 0;">ไม่มีรูปหลักฐาน</div>';
+
+    const productsHTML = products.length
+        ? products.map(function(p) {
+            const imgTag = p.img
+                ? '<img src="' + p.img + '" class="rp-prod-img" />'
+                : '<div class="rp-prod-img-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>';
+            return '<div class="rp-prod-item">' + imgTag +
+                '<div><div class="rp-prod-name">' + p.name + '</div>' +
+                '<div class="rp-prod-meta">฿' + p.price + ' × ' + p.qty + ' ชิ้น</div></div></div>';
+          }).join('')
+        : '<div style="font-size:.8125rem;color:var(--text-3);" class="py-2">ไม่พบรายการสินค้า</div>';
+
+    const reviewedRow = +d.status !== 0
+        ? '<div class="rp-ds-row"><span class="rp-ds-key">ตรวจสอบเมื่อ</span><span class="rp-ds-val">' + d.reviewed + '</span></div>'
+        : '';
+
+    document.getElementById('rpDrawerBody').innerHTML =
+        '<div class="rp-ds">' +
+            '<div class="rp-ds-label">ข้อมูลลูกค้า</div>' +
+            '<div class="rp-ds-card">' +
+                '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+                    '<div class="rp-avatar">' + initials + '</div>' +
+                    '<div><div style="font-size:.875rem;font-weight:600;color:var(--text-1);">' + d.customer + '</div>' +
+                    '<div style="font-size:.75rem;color:var(--text-3);">' + d.email + '</div></div>' +
+                '</div>' +
+                '<div class="rp-ds-row"><span class="rp-ds-key">ออเดอร์</span>' +
+                '<a href="/Admin/OrderDetail/' + d.order + '" style="font-weight:600;color:var(--text-1);text-decoration:none;" onclick="event.stopPropagation()">#' + d.order + '</a></div>' +
+                '<div class="rp-ds-row"><span class="rp-ds-key">ยอดออเดอร์</span><span class="rp-ds-val">฿' + d.total + '</span></div>' +
+                '<div class="rp-ds-row"><span class="rp-ds-key">วันที่ยื่น</span><span class="rp-ds-val">' + d.created + '</span></div>' +
+                reviewedRow +
+            '</div>' +
+        '</div>' +
+        '<div class="rp-ds">' +
+            '<div class="rp-ds-label">รายละเอียดคำขอ</div>' +
+            '<div class="rp-ds-card">' +
+                '<div class="rp-ds-row"><span class="rp-ds-key">ประเภท</span><span class="rp-ds-val"><span class="rp-type">' + d.type + '</span></span></div>' +
+                '<div class="rp-ds-row"><span class="rp-ds-key">เหตุผล</span><span class="rp-ds-val">' + d.reason + '</span></div>' +
+                '<div class="rp-ds-row" style="align-items:flex-start;"><span class="rp-ds-key">หมายเหตุ</span><span class="rp-ds-val" style="max-width:240px;text-align:right;white-space:pre-wrap;">' + d.note + '</span></div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="rp-ds">' +
+            '<div class="rp-ds-label">สินค้าในออเดอร์</div>' +
+            '<div class="rp-ds-card" style="padding:8px 16px;">' + productsHTML + '</div>' +
+        '</div>' +
+        '<div class="rp-ds">' +
+            '<div class="rp-ds-label">หลักฐานประกอบ</div>' +
+            proofHTML +
+        '</div>';
+
+    const foot = document.getElementById('rpDrawerFoot');
+    const token = (document.querySelector('input[name=__RequestVerificationToken]') || {}).value || '';
+    if (+d.status === 0) {
+        foot.innerHTML =
+            '<div class="rp-drawer-actions">' +
+                '<form action="/Admin/ReviewReturn" method="post" style="flex:1;display:flex;" onsubmit="closeDrawer()">' +
+                    '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />' +
+                    '<input type="hidden" name="returnId" value="' + d.id + '" />' +
+                    '<input type="hidden" name="status" value="1" />' +
+                    '<button type="submit" class="rp-drawer-btn-approve" style="width:100%"><i class="ti ti-check"></i> อนุมัติคำขอ</button>' +
+                '</form>' +
+                '<form action="/Admin/ReviewReturn" method="post" style="flex:1;display:flex;" onsubmit="closeDrawer()">' +
+                    '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />' +
+                    '<input type="hidden" name="returnId" value="' + d.id + '" />' +
+                    '<input type="hidden" name="status" value="2" />' +
+                    '<button type="submit" class="rp-drawer-btn-reject" style="width:100%"><i class="ti ti-x"></i> ปฏิเสธคำขอ</button>' +
+                '</form>' +
+            '</div>';
+    } else {
+        const ok = +d.status === 1;
+        foot.innerHTML =
+            '<div class="rp-drawer-done" style="background:' + (ok ? '#dcfce7' : '#ffe4e6') + ';border-radius:10px;padding:12px;">' +
+            '<i class="ti ' + (ok ? 'ti-circle-check' : 'ti-circle-x') + '" style="color:' + (ok ? '#166534' : '#9f1239') + ';font-size:16px;vertical-align:middle;margin-right:6px;"></i>' +
+            '<strong style="color:' + (ok ? '#166534' : '#9f1239') + ';">' + (ok ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว') + '</strong>' +
+            '<span style="color:var(--text-2);"> เมื่อ ' + d.reviewed + '</span></div>';
+    }
+
+    document.getElementById('rpDrawerOverlay').classList.add('open');
+    document.getElementById('rpDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+    document.getElementById('rpDrawerOverlay').classList.remove('open');
+    document.getElementById('rpDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeImg(); closeDrawer(); }
+});
+</script>
+}

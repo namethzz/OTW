@@ -1,0 +1,272 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "สั่งซื้อสำเร็จ";
+
+    var order        = ViewBag.Order;
+    var orderDetails = ViewBag.OrderDetails as List<Project.Models.Db.OrderDetail> ?? new();
+    string fullName  = ViewBag.FullName?.ToString() ?? "";
+    string address   = ViewBag.Address?.ToString()  ?? "";
+    string phone     = ViewBag.Phone?.ToString()    ?? "";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-xl-5">
+
+            <!-- Success card -->
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+
+                <!-- Top accent -->
+                <div style="height:5px; background:linear-gradient(90deg,#4ade80,#22c55e);"></div>
+
+                <div class="card-body p-4 p-md-5">
+
+                    <!-- Icon -->
+                    <div class="success-icon-wrap mx-auto mb-4">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
+                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+
+                    <h2 class="fw-bold text-center mb-1" style="font-size:1.5rem;">สั่งซื้อสำเร็จ</h2>
+                    <p class="text-muted text-center mb-4" style="font-size:.9375rem;">
+                        ขอบคุณ <strong class="text-dark">@fullName</strong> ที่ไว้วางใจเราครับ
+                    </p>
+
+                    <!-- Order ID -->
+                    <div class="order-id-box text-center mb-4">
+                        <div class="order-id-label">หมายเลขคำสั่งซื้อ</div>
+                        <div class="order-id-number">#@order.OrderId</div>
+                    </div>
+
+                    <!-- ที่อยู่จัดส่ง -->
+                    @if (!string.IsNullOrEmpty(address))
+                    {
+                        <div class="address-box mb-4">
+                            <div class="address-head">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                ที่อยู่จัดส่ง
+                            </div>
+                            <div class="address-body">
+                                <div>@fullName</div>
+                                <div>@address</div>
+                                <div>โทร. @phone</div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- รายการสินค้า -->
+                    <div class="items-box mb-4">
+                        <div class="items-head">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                            รายการสินค้า
+                            <span class="items-count">@orderDetails.Count รายการ</span>
+                        </div>
+                        @foreach (var item in orderDetails)
+                        {
+                            <div class="item-row">
+                                <div class="item-thumb">
+                                    @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
+                                    {
+                                        <img src="@item.Product.ImageUrl" class="w-100 h-100"
+                                             style="object-fit:contain;padding:3px" />
+                                    }
+                                    else
+                                    {
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc"
+                                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <polyline points="21 15 16 10 5 21"/>
+                                        </svg>
+                                    }
+                                </div>
+                                <div class="item-info">
+                                    <div class="item-name">@item.Product?.ProductName</div>
+                                    <div class="item-meta">฿@item.Price.ToString("N0") × @item.Quantity</div>
+                                </div>
+                                <div class="item-price">฿@((item.Price * item.Quantity).ToString("N0"))</div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- ยอดรวม -->
+                    <div class="mb-4">
+                        <div class="summary-row">
+                            <span class="text-muted">ยอดสินค้า</span>
+                            <span>฿@order.Subtotal.ToString("N2")</span>
+                        </div>
+                        @if (order.DiscountAmount > 0)
+                        {
+                            <div class="summary-row">
+                                <span class="text-muted">ส่วนลด</span>
+                                <span style="color:#16a34a;">-฿@order.DiscountAmount.ToString("N2")</span>
+                            </div>
+                        }
+                        <div class="summary-row border-top pt-3 mt-2">
+                            <span class="fw-semibold">ยอดรวมทั้งหมด</span>
+                            <span class="fw-bold" style="font-size:1.2rem;">฿@order.TotalPrice.ToString("N2")</span>
+                        </div>
+                    </div>
+
+                    <!-- ปุ่มหลัก -->
+                    <div class="d-flex gap-2 mb-3">
+                        <a asp-controller="Shop" asp-action="Index"
+                           class="btn-primary-dark flex-fill d-flex align-items-center justify-content-center gap-2 text-decoration-none">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                                <line x1="3" y1="6" x2="21" y2="6"/>
+                                <path d="M16 10a4 4 0 0 1-8 0"/>
+                            </svg>
+                            ช็อปต่อ
+                        </a>
+                        <a asp-controller="Account" asp-action="OrderDetail"
+                           asp-route-id="@order.OrderId"
+                           class="btn-outline-dark-custom flex-fill d-flex align-items-center justify-content-center gap-2 text-decoration-none">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            ดูออเดอร์
+                        </a>
+                    </div>
+
+                    <!-- ปุ่มคืนสินค้าถูกซ่อนไว้ที่นี่ เพราะออเดอร์เพิ่งสร้าง (status=1)
+                         ลูกค้าสามารถยื่นคืนได้จากหน้า รายละเอียดออเดอร์ หลังจากได้รับสินค้าแล้ว -->
+
+                </div>
+            </div>
+
+            <!-- นโยบายคืนสินค้า -->
+            <div class="policy-banner">
+                <div class="policy-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#92400e"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="fw-semibold" style="color:#92400e;">นโยบายคืนสินค้า</span>
+                    <span class="text-muted ms-1" style="font-size:.8125rem;">
+                        หากได้รับสินค้าชำรุดหรือผิด สามารถยื่นคืนได้ภายใน
+                        <strong>7 วัน</strong> หลังได้รับสินค้า
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+/* Success icon */
+.success-icon-wrap {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #f0fdf4; border: 2px solid #bbf7d0;
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* Order ID box */
+.order-id-box {
+    background: #f8fafc; border: 1.5px dashed #cbd5e1;
+    border-radius: 12px; padding: 14px 20px;
+}
+.order-id-label { font-size:.75rem; color:#94a3b8; margin-bottom:2px; }
+.order-id-number { font-size:1.5rem; font-weight:700; color:#1a1a1a; letter-spacing:.5px; }
+
+/* Address box */
+.address-box {
+    background: #f8f9fa; border-radius: 12px; overflow: hidden;
+}
+.address-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size:.8125rem; font-weight:600; color:#444;
+    padding: 10px 14px; background:#f0f0f0;
+}
+.address-body {
+    padding: 10px 14px; font-size:.8125rem; color:#666; line-height:1.7;
+}
+
+/* Items box */
+.items-box {
+    border: 1px solid #eee; border-radius: 12px; overflow: hidden;
+}
+.items-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size:.8125rem; font-weight:600; color:#444;
+    padding: 10px 14px; background:#f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+.items-count {
+    margin-left: auto; font-size:.75rem; font-weight:400;
+    background:#e8e8e8; color:#555; padding:2px 8px; border-radius:20px;
+}
+.item-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
+}
+.item-row:last-child { border-bottom: 0; }
+.item-thumb {
+    width: 44px; height: 44px; flex-shrink:0;
+    background:#f8f8f8; border-radius:8px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    border: 1px solid #eee;
+}
+.item-info { flex: 1; min-width:0; }
+.item-name { font-size:.8125rem; font-weight:500; color:#1a1a1a; }
+.item-meta { font-size:.75rem; color:#999; margin-top:1px; }
+.item-price { font-size:.8125rem; font-weight:600; color:#1a1a1a; white-space:nowrap; }
+
+/* Summary */
+.summary-row {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:.875rem; margin-bottom:6px;
+}
+
+/* Buttons */
+.btn-primary-dark {
+    background:#1a1a1a; color:#fff;
+    border-radius:12px; padding:12px;
+    font-size:.875rem; font-weight:600;
+    transition:background .15s;
+}
+.btn-primary-dark:hover { background:#333; color:#fff; }
+
+.btn-outline-dark-custom {
+    border:1px solid #ddd; color:#333;
+    border-radius:12px; padding:12px;
+    font-size:.875rem; font-weight:500;
+    transition:background .15s;
+}
+.btn-outline-dark-custom:hover { background:#f5f5f5; color:#1a1a1a; }
+
+.return-link {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:.8125rem; color:#aaa; text-decoration:none;
+    transition:color .15s;
+}
+.return-link:hover { color:#666; }
+
+/* Policy banner */
+.policy-banner {
+    display:flex; align-items:flex-start; gap:10px;
+    background:#fefce8; border:1px solid #fde68a;
+    border-radius:12px; padding:12px 16px;
+    font-size:.8125rem;
+}
+.policy-icon {
+    flex-shrink:0; margin-top:1px;
+}
+</style>

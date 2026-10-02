@@ -1,0 +1,280 @@
+@model Project.Models.Db.User
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "โปรไฟล์ของฉัน";
+    var avatarUrl = string.IsNullOrEmpty(Model.ImageUrl) ? null : Model.ImageUrl;
+    var initial   = Model.FullName?.Length > 0 ? Model.FullName.Substring(0, 1).ToUpper() : "?";
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+    .pf-page { font-family: 'Sora', system-ui, sans-serif; padding: 48px 0 80px; }
+
+    :root {
+        --s:#ffffff;--s2:#f8f8fa;--bd:#ebebed;
+        --t1:#0d0d10;--t2:#6b6b80;--t3:#b0b0c0;
+        --accent:#111113; --r:14px;
+    }
+
+    .pf-wrap { max-width: 680px; margin: 0 auto; }
+
+    .pf-title { font-size: 1.35rem; font-weight: 700; color: var(--t1); letter-spacing: -.025em; margin: 0 0 3px; }
+    .pf-sub   { font-size: .825rem; color: var(--t2); margin: 0 0 32px; }
+
+    /* Avatar */
+    .pf-avatar-section {
+        background: var(--s); border: 1px solid var(--bd);
+        border-radius: 20px; padding: 28px;
+        display: flex; align-items: center; gap: 24px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .pf-avatar-wrap { position: relative; flex-shrink: 0; }
+    .pf-avatar {
+        width: 88px; height: 88px; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        font-size: 2rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        border: 3px solid var(--bd); overflow: hidden;
+    }
+    .pf-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .pf-avatar-edit {
+        position: absolute; bottom: 0; right: 0;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        border: 2px solid #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 11px;
+        transition: background .15s;
+    }
+    .pf-avatar-edit:hover { background: #333; }
+    .pf-avatar-input { display: none; }
+    .pf-avatar-info h3 { font-size: 1.1rem; font-weight: 700; color: var(--t1); margin: 0 0 4px; }
+    .pf-avatar-info p  { font-size: .8rem; color: var(--t2); margin: 0 0 12px; }
+    .pf-avatar-hint { font-size: .72rem; color: var(--t3); }
+    .pf-avatar-preview-name { font-size: .78rem; color: #6366f1; font-weight: 600; margin-top: 4px; display: none; }
+
+    /* Section card */
+    .pf-card {
+        background: var(--s); border: 1px solid var(--bd);
+        border-radius: 20px; padding: 28px;
+        margin-bottom: 16px;
+    }
+    .pf-card-title {
+        font-size: .7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; color: var(--t3);
+        margin: 0 0 20px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .pf-card-title::after { content: ''; flex: 1; height: 1px; background: var(--bd); }
+
+    /* Fields */
+    .pf-field { margin-bottom: 18px; }
+    .pf-field:last-child { margin-bottom: 0; }
+    .pf-label { display: block; font-size: .78rem; font-weight: 600; color: var(--t2); margin-bottom: 7px; }
+    .pf-input {
+        width: 100%; border: 1px solid var(--bd); border-radius: var(--r);
+        padding: 10px 14px; font-size: .875rem;
+        font-family: 'Sora', sans-serif; color: var(--t1);
+        background: var(--s); outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .pf-input:focus { border-color: #aaa; box-shadow: 0 0 0 3px rgba(0,0,0,.05); }
+    .pf-input[readonly] { background: var(--s2); color: var(--t2); cursor: not-allowed; }
+    .pf-hint { font-size: .72rem; color: var(--t3); margin-top: 5px; }
+
+    .pf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* Buttons */
+    .pf-submit {
+        background: var(--accent); color: #fff; border: none;
+        border-radius: var(--r); padding: 11px 28px;
+        font-size: .875rem; font-weight: 600;
+        font-family: 'Sora', sans-serif; cursor: pointer;
+        transition: background .15s, transform .1s;
+        display: inline-flex; align-items: center; gap: 7px;
+    }
+    .pf-submit:hover { background: #333; transform: translateY(-1px); }
+
+    /* Alert */
+    .pf-alert {
+        border-radius: var(--r); padding: 13px 18px;
+        font-size: .8125rem; font-weight: 500;
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 20px;
+    }
+    .pf-alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .pf-alert-error   { background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; }
+
+    .pf-password-toggle {
+        position: relative;
+    }
+    .pf-password-toggle input { padding-right: 42px; }
+    .pf-eye {
+        position: absolute; right: 13px; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: none; cursor: pointer;
+        color: var(--t3); padding: 0;
+        transition: color .15s;
+    }
+    .pf-eye:hover { color: var(--t1); }
+
+    @@media(max-width:600px) {
+        .pf-row { grid-template-columns: 1fr; }
+        .pf-avatar-section { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+
+<div class="container pf-page">
+    <div class="pf-wrap">
+
+        <h1 class="pf-title">โปรไฟล์ของฉัน</h1>
+        <p class="pf-sub">แก้ไขข้อมูลส่วนตัว รูปโปรไฟล์ และรหัสผ่าน</p>
+
+        @if (ViewBag.ProfileSuccess != null)
+        {
+            <div class="pf-alert pf-alert-success">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                @ViewBag.ProfileSuccess
+            </div>
+        }
+        @if (ViewBag.ProfileError != null)
+        {
+            <div class="pf-alert pf-alert-error">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                @ViewBag.ProfileError
+            </div>
+        }
+
+        <form asp-controller="Home" asp-action="UpdateProfile" method="post" enctype="multipart/form-data">
+
+            <!-- Avatar -->
+            <div class="pf-avatar-section">
+                <div class="pf-avatar-wrap">
+                    <div class="pf-avatar" id="avatarDisplay">
+                        @if (avatarUrl != null)
+                        {
+                            <img src="@avatarUrl" id="avatarImg" alt="avatar" />
+                        }
+                        else
+                        {
+                            <span id="avatarInitial">@initial</span>
+                        }
+                    </div>
+                    <label class="pf-avatar-edit" for="avatarFile" title="เปลี่ยนรูป">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </label>
+                    <input type="file" name="avatarFile" id="avatarFile" class="pf-avatar-input"
+                           accept=".jpg,.jpeg,.png,.webp" onchange="previewAvatar(event)" />
+                </div>
+                <div class="pf-avatar-info">
+                    <h3>@Model.FullName</h3>
+                    <p>@Model.Email</p>
+                    <div class="pf-avatar-hint">JPG, PNG, WEBP · ไม่เกิน 3 MB</div>
+                    <div class="pf-avatar-preview-name" id="avatarFileName"></div>
+                </div>
+            </div>
+
+            <!-- ข้อมูลส่วนตัว -->
+            <div class="pf-card">
+                <div class="pf-card-title">ข้อมูลส่วนตัว</div>
+                <div class="pf-row">
+                    <div class="pf-field">
+                        <label class="pf-label">ชื่อ-นามสกุล</label>
+                        <input name="fullName" class="pf-input" value="@Model.FullName" placeholder="ชื่อ-นามสกุล" />
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">เบอร์โทรศัพท์</label>
+                        <input name="phone" class="pf-input" value="@Model.Phone" placeholder="เช่น 081-234-5678" />
+                    </div>
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">อีเมล</label>
+                    <input class="pf-input" value="@Model.Email" readonly />
+                    <div class="pf-hint">อีเมลไม่สามารถเปลี่ยนได้</div>
+                </div>
+            </div>
+
+            <!-- เปลี่ยนรหัสผ่าน -->
+            <div class="pf-card">
+                <div class="pf-card-title">เปลี่ยนรหัสผ่าน</div>
+                <div class="pf-field">
+                    <label class="pf-label">รหัสผ่านปัจจุบัน</label>
+                    <div class="pf-password-toggle">
+                        <input type="password" name="currentPassword" id="currPwd" class="pf-input" placeholder="กรอกรหัสผ่านปัจจุบัน" />
+                        <button type="button" class="pf-eye" onclick="togglePwd('currPwd', this)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="pf-row">
+                    <div class="pf-field">
+                        <label class="pf-label">รหัสผ่านใหม่</label>
+                        <div class="pf-password-toggle">
+                            <input type="password" name="newPassword" id="newPwd" class="pf-input" placeholder="อย่างน้อย 6 ตัวอักษร" />
+                            <button type="button" class="pf-eye" onclick="togglePwd('newPwd', this)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">ยืนยันรหัสผ่านใหม่</label>
+                        <div class="pf-password-toggle">
+                            <input type="password" id="confirmPwd" class="pf-input" placeholder="พิมพ์ซ้ำอีกครั้ง" oninput="checkConfirm()" />
+                            <button type="button" class="pf-eye" onclick="togglePwd('confirmPwd', this)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                        <div id="confirmMsg" class="pf-hint"></div>
+                    </div>
+                </div>
+                <div class="pf-hint">ถ้าไม่ต้องการเปลี่ยนรหัสผ่านให้เว้นว่างไว้</div>
+            </div>
+
+            <button type="submit" class="pf-submit">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                บันทึกการเปลี่ยนแปลง
+            </button>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function previewAvatar(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const display = document.getElementById('avatarDisplay');
+        display.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover;" />';
+        const fn = document.getElementById('avatarFileName');
+        fn.textContent = '✓ ' + file.name;
+        fn.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.style.opacity = isText ? '1' : '0.5';
+}
+
+function checkConfirm() {
+    const np = document.getElementById('newPwd').value;
+    const cp = document.getElementById('confirmPwd').value;
+    const msg = document.getElementById('confirmMsg');
+    if (!cp) { msg.textContent = ''; return; }
+    if (np === cp) {
+        msg.textContent = '✓ รหัสผ่านตรงกัน';
+        msg.style.color = '#22c55e';
+    } else {
+        msg.textContent = '✗ รหัสผ่านไม่ตรงกัน';
+        msg.style.color = '#e11d48';
+    }
+}
+</script>
+}

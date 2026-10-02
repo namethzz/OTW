@@ -1,0 +1,357 @@
+@inject Project.Models.Db.Csi402dbbContext _notiDb
+@{
+    var now = DateTime.Now;
+    var since24h = now.AddHours(-24);
+
+    var pendingOrders = _notiDb.Orders
+        .Where(o => o.OrderStatus == 1)
+        .OrderByDescending(o => o.OrderDate)
+        .Take(5)
+        .ToList();
+
+    var pendingReturns = _notiDb.Returns
+        .Where(r => r.Status == 0)
+        .OrderByDescending(r => r.CreatedAt)
+        .Take(5)
+        .ToList();
+
+    var newUsers = _notiDb.Users
+        .Where(u => u.CreatedAt >= since24h && u.Role == 2)
+        .OrderByDescending(u => u.CreatedAt)
+        .Take(5)
+        .ToList();
+
+    var lowStockNoti = _notiDb.Products
+        .Where(p => p.Stock < 10 && p.Status == 1)
+        .OrderBy(p => p.Stock)
+        .Take(5)
+        .ToList();
+
+    int totalNoti = pendingOrders.Count + pendingReturns.Count + newUsers.Count + lowStockNoti.Count;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin - OTW.SHOP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@@3.19.0/dist/tabler-icons.min.css" rel="stylesheet" />
+    <style>
+        body { font-family: 'Poppins', sans-serif; font-size: 0.875rem; background: #fafafa; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px; background: #fff; border-right: 1px solid #e5e5e5;
+            height: 100vh; position: fixed; top: 0; left: 0;
+            padding-top: 60px; z-index: 1030; transition: width .3s, left .3s;
+        }
+        .sidebar .nav-link {
+            color: #262626; padding: 8px 10px; display: flex; align-items: center;
+            font-size: 14px; gap: 12px; white-space: nowrap;
+            margin: 1px 12px; border-radius: 8px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #E66239; background-color: rgba(230,98,57,.095);
+        }
+        .sidebar .nav-link .ti { font-size: 18px; }
+        .sidebar .nav-text { transition: opacity .2s; }
+        .sidebar .logo-area {
+            position: absolute; top: 0; left: 0; height: 60px; width: 100%;
+            background: #fff; display: flex; align-items: center; gap: 10px;
+            padding-left: 17px; border-bottom: 1px solid #e5e5e5;
+        }
+        .sidebar.collapsed { width: 60px; }
+        .sidebar.collapsed .nav-link { margin: 0; padding: 8px 18px; background: transparent; }
+        .sidebar.collapsed .nav-text, .sidebar.collapsed .logo-text { display: none; }
+
+        /* ── TOPBAR ── */
+        .topbar { height: 60px; margin-left: 240px; }
+        .topbar.full { margin-left: 60px; }
+
+        /* ── CONTENT ── */
+        .content { margin-left: 240px; }
+        .content.full { margin-left: 60px; }
+
+        /* ── OVERLAY (mobile) ── */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 1029; }
+        .overlay.show { display: block; }
+
+        @@media (max-width: 992px) {
+            .sidebar { left: -240px; }
+            .sidebar.mobile-show { left: 0; }
+            .topbar { margin-left: 0 !important; width: 100% !important; }
+            .content { margin-left: 0 !important; }
+        }
+
+        /* ── MISC ── */
+        .avatar-sm  { width: 2rem;   height: 2rem; }
+        .avatar-md  { width: 2.5rem; height: 2.5rem; }
+        .btn-icon   { display: inline-flex; align-items: center; justify-content: center; }
+        .py-10      { padding-top: 6rem; padding-bottom: 1.5rem; }
+        .mt-6       { margin-top: 2.5rem; }
+    </style>
+</head>
+<body>
+
+<div id="overlay" class="overlay"></div>
+
+<!-- ══════════ TOPBAR ══════════ -->
+<nav id="topbar" class="navbar bg-white border-bottom fixed-top topbar px-3 d-flex justify-content-between">
+    <div class="d-flex align-items-center">
+        <button id="toggleBtn" class="d-none d-lg-inline-flex btn btn-light btn-icon btn-sm me-2">
+            <i class="ti ti-layout-sidebar-left-expand"></i>
+        </button>
+        <button id="mobileBtn" class="btn btn-light btn-icon btn-sm d-lg-none me-2">
+            <i class="ti ti-layout-sidebar-left-expand"></i>
+        </button>
+    </div>
+
+    <ul class="list-unstyled d-flex align-items-center mb-0 gap-1">
+        <!-- Bell -->
+        <li>
+            <a class="position-relative btn btn-light btn-icon btn-sm rounded-circle"
+               data-bs-toggle="dropdown" href="#" role="button">
+                <i class="ti ti-bell" style="font-size:20px"></i>
+                @if (totalNoti > 0)
+                {
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger mt-2 ms-n2">
+                        @totalNoti <span class="visually-hidden">unread</span>
+                    </span>
+                }
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:300px">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">การแจ้งเตือน</span>
+                    @if (totalNoti > 0)
+                    {
+                        <span class="badge bg-danger rounded-pill">@totalNoti</span>
+                    }
+                </div>
+
+                <ul class="list-unstyled p-0 m-0" style="max-height:320px;overflow-y:auto">
+                    @if (!pendingOrders.Any() && !pendingReturns.Any() && !newUsers.Any() && !lowStockNoti.Any())
+                    {
+                        <li class="p-4 text-center text-muted">
+                            <i class="ti ti-bell-off d-block mb-2" style="font-size:28px"></i>
+                            <small>ไม่มีการแจ้งเตือน</small>
+                        </li>
+                    }
+
+                    @foreach (var o in pendingOrders)
+                    {
+                        <li class="p-3 border-bottom">
+                            <div class="d-flex gap-2 align-items-start">
+                                <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">
+                                    <i class="ti ti-receipt" style="font-size:15px"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 small fw-semibold">คำสั่งซื้อ #@o.OrderId รอดำเนินการ</p>
+                                    <p class="mb-0 small text-muted">
+                                        ลูกค้า: @(o.User != null ? o.User.FullName : "-") — ฿@o.TotalPrice.ToString("N0")
+                                    </p>
+                                    <small class="text-secondary">
+                                        @string.Format("{0:dd/MM/yyyy HH:mm}", o.OrderDate)
+                                    </small>
+                                </div>
+                            </div>
+                        </li>
+                    }
+
+                    @foreach (var r in pendingReturns)
+                    {
+                        <li class="p-3 border-bottom">
+                            <div class="d-flex gap-2 align-items-start">
+                                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">
+                                    <i class="ti ti-arrow-back-up" style="font-size:15px"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 small fw-semibold">คำขอคืน/เปลี่ยนสินค้า #@r.ReturnId รอตรวจสอบ</p>
+                                    <p class="mb-0 small text-muted">Order #@r.OrderId</p>
+                                    <small class="text-secondary">
+                                        @string.Format("{0:dd/MM/yyyy HH:mm}", r.CreatedAt)
+                                    </small>
+                                </div>
+                            </div>
+                        </li>
+                    }
+
+                    @foreach (var u in newUsers)
+                    {
+                        <li class="p-3 border-bottom">
+                            <div class="d-flex gap-2 align-items-start">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">
+                                    <i class="ti ti-user-plus" style="font-size:15px"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 small fw-semibold">สมาชิกใหม่: @u.FullName</p>
+                                    <p class="mb-0 small text-muted">@u.Email</p>
+                                    <small class="text-secondary">
+                                        @string.Format("{0:dd/MM/yyyy HH:mm}", u.CreatedAt)
+                                    </small>
+                                </div>
+                            </div>
+                        </li>
+                    }
+
+                    @foreach (var p in lowStockNoti)
+                    {
+                        <li class="p-3 border-bottom">
+                            <div class="d-flex gap-2 align-items-start">
+                                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">
+                                    <i class="ti ti-alert-triangle" style="font-size:15px"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 small fw-semibold">Stock น้อย: @p.ProductName</p>
+                                    <p class="mb-0 small text-muted">เหลือ @p.Stock ชิ้น</p>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+
+                <div class="p-2 border-top text-center">
+                    <a asp-controller="Admin" asp-action="Returns" class="small text-primary text-decoration-none me-3">
+                        ดูคำขอคืนสินค้า
+                    </a>
+                    <a asp-controller="Admin" asp-action="Orders" class="small text-primary text-decoration-none">
+                        ดูคำสั่งซื้อทั้งหมด
+                    </a>
+                </div>
+            </div>
+        </li>
+
+        <!-- User dropdown -->
+        <li class="ms-2 dropdown">
+            <a href="#" role="button" data-bs-toggle="dropdown" class="d-flex align-items-center gap-2 text-decoration-none">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:32px;height:32px;font-size:14px;font-weight:600;">
+                    @(Context.Session.GetString("FullName")?.Substring(0,1).ToUpper() ?? "A")
+                </div>
+                <span class="d-none d-md-inline small">@Context.Session.GetString("FullName")</span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:200px">
+                <div class="px-3 py-3 border-bottom">
+                    <p class="mb-0 fw-semibold">@Context.Session.GetString("FullName")</p>
+                    <small class="text-muted">Administrator</small>
+                </div>
+                <div class="p-2">
+                    <a asp-controller="Home" asp-action="Index" class="dropdown-item rounded">
+                        <i class="ti ti-home me-2"></i>หน้าร้านค้า
+                    </a>
+                    <a asp-controller="Account" asp-action="Logout" class="dropdown-item rounded text-danger">
+                        <i class="ti ti-logout me-2"></i>ออกจากระบบ
+                    </a>
+                </div>
+            </div>
+        </li>
+    </ul>
+</nav>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside id="sidebar" class="sidebar">
+    <div class="logo-area">
+        <a asp-controller="Admin" asp-action="Dashboard" class="d-inline-flex align-items-center text-decoration-none">
+            <i class="ti ti-shield-check text-primary" style="font-size:22px"></i>
+            <span class="logo-text ms-2 fw-bold text-dark">OTW.SHOP</span>
+        </a>
+    </div>
+
+    <ul class="nav flex-column mt-2">
+        <li class="px-4 py-2"><small class="nav-text text-muted">หลัก</small></li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Dashboard" ? "active" : "")"
+               asp-controller="Admin" asp-action="Dashboard">
+                <i class="ti ti-home"></i><span class="nav-text">Dashboard</span>
+            </a>
+        </li>
+
+        <li class="px-4 pt-3 pb-2"><small class="nav-text text-muted">จัดการร้านค้า</small></li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Products" ? "active" : "")"
+               asp-controller="Admin" asp-action="Products">
+                <i class="ti ti-box-seam"></i><span class="nav-text">สินค้าทั้งหมด</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "AddProduct" ? "active" : "")"
+               asp-controller="Admin" asp-action="AddProduct">
+                <i class="ti ti-plus"></i><span class="nav-text">เพิ่มสินค้า</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Orders" ? "active" : "")"
+               asp-controller="Admin" asp-action="Orders">
+                <i class="ti ti-receipt"></i><span class="nav-text">คำสั่งซื้อ</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Returns" ? "active" : "")"
+               asp-controller="Admin" asp-action="Returns">
+                <i class="ti ti-arrow-back-up"></i><span class="nav-text">คำขอคืน / เปลี่ยนสินค้า</span>
+            </a>
+        </li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Promotions" ? "active" : "")"
+               asp-controller="Admin" asp-action="Promotions">
+                <i class="ti ti-discount-2"></i><span class="nav-text">โปรโมชั่น</span>
+            </a>
+        </li>
+
+        <li class="px-4 pt-3 pb-2"><small class="nav-text text-muted">สมาชิก</small></li>
+        <li>
+            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Users" ? "active" : "")"
+               asp-controller="Admin" asp-action="Users">
+                <i class="ti ti-users"></i><span class="nav-text">จัดการสมาชิก</span>
+            </a>
+        </li>
+
+        <li class="px-4 pt-3 pb-2"><small class="nav-text text-muted">บัญชี</small></li>
+        <li>
+            <a class="nav-link" asp-controller="Account" asp-action="Logout">
+                <i class="ti ti-logout"></i><span class="nav-text">ออกจากระบบ</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+
+<!-- ══════════ MAIN CONTENT ══════════ -->
+<main id="content" class="content py-10">
+    <div class="container-fluid">
+        @RenderBody()
+
+        <footer class="text-center py-3 mt-4 text-muted border-top">
+            <small>SUPP.SHOP Admin Panel &copy; @DateTime.Now.Year</small>
+        </footer>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    const topbar = document.getElementById('topbar');
+    const overlay = document.getElementById('overlay');
+
+    document.getElementById('toggleBtn')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        content?.classList.toggle('full');
+        topbar?.classList.toggle('full');
+    });
+
+    document.getElementById('mobileBtn')?.addEventListener('click', () => {
+        sidebar?.classList.add('mobile-show');
+        overlay?.classList.add('show');
+    });
+
+    overlay?.addEventListener('click', () => {
+        sidebar?.classList.remove('mobile-show');
+        overlay?.classList.remove('show');
+    });
+</script>
+
+@RenderSection("Scripts", required: false)
+</body>
+</html>
