@@ -1,0 +1,45 @@
+@model Project.ViewModels.CommerceHeroViewModel
+<section class="commerce-hero @(Model.IsAdmin ? "commerce-hero-admin" : "commerce-hero-shop")" aria-label="@(Model.IsAdmin ? "ภาพรวมการจัดการร้านค้า" : "เลือกซื้อสินค้า")">
+    <div class="commerce-hero-top"><span class="commerce-eyebrow">OTW / @(Model.IsAdmin ? "STORE MANAGEMENT" : "DAILY WELLNESS")</span><span class="commerce-edition">@(Model.IsAdmin ? "Your store, thoughtfully managed." : "A little better. Every day.")</span></div>
+    <div class="commerce-hero-body">
+        <div>
+            <span class="commerce-kicker">@(Model.IsAdmin ? "พื้นที่ทำงานของคุณ" : "เริ่มต้นดูแลตัวเอง")</span>
+            <h1>@(Model.IsAdmin ? "ดูแลร้านให้เติบโต" : "สุขภาพที่ดี")<br /><span>@(Model.IsAdmin ? "ในทุกรายละเอียด." : "เริ่มจากสิ่งที่คุณเลือก.")</span></h1>
+            <p>@(Model.IsAdmin ? "จัดการสินค้า ติดตามคำสั่งซื้อ และดูภาพรวมร้านค้าได้ในที่เดียว" : "ค้นพบโปรตีน วิตามิน และอาหารเสริมที่เข้ากับชีวิตประจำวันของคุณ")</p>
+            <div class="commerce-actions">
+                <a class="commerce-button" asp-controller="@(Model.IsAdmin ? "Admin" : "Shop")" asp-action="@(Model.IsAdmin ? "AddProduct" : "Index")">@(Model.IsAdmin ? "เพิ่มสินค้าใหม่" : "เลือกซื้อสินค้า") <span aria-hidden="true">↗</span></a>
+                <a class="commerce-text-link" asp-controller="@(Model.IsAdmin ? "Admin" : "Home")" asp-action="@(Model.IsAdmin ? "Orders" : "Promo")">@(Model.IsAdmin ? "ดูคำสั่งซื้อ" : "ดูโปรโมชั่น") <span aria-hidden="true">→</span></a>
+            </div>
+        </div>
+        <div class="commerce-visual" aria-hidden="true">
+            @if (Model.IsAdmin)
+            {
+                <span class="commerce-visual-number">OTW<span>CONTROL ROOM</span></span>
+                <span class="commerce-visual-foot">ON THE WHEY / ADMIN</span>
+            }
+            else
+            {
+                <img class="commerce-visual-photo" src="~/img/pexels-pavel-danilyuk-6339725.jpg" alt="" />
+                <span class="commerce-visual-foot">NOURISH YOUR EVERYDAY</span>
+            }
+        </div>
+    </div>
+</section>
+@if (Model.IsAdmin)
+{
+    <nav class="commerce-collections" aria-label="จัดการร้านค้าอย่างรวดเร็ว">
+        <a asp-controller="Admin" asp-action="Products"><span>01 / CATALOG</span><strong>สินค้าทั้งหมด</strong><b aria-hidden="true">↗</b></a>
+        <a asp-controller="Admin" asp-action="Orders"><span>02 / ORDERS</span><strong>คำสั่งซื้อ</strong><b aria-hidden="true">↗</b></a>
+        <a asp-controller="Admin" asp-action="Promotions"><span>03 / CAMPAIGNS</span><strong>โปรโมชั่น</strong><b aria-hidden="true">↗</b></a>
+        <a asp-controller="Admin" asp-action="Users"><span>04 / PEOPLE</span><strong>สมาชิก</strong><b aria-hidden="true">↗</b></a>
+    </nav>
+}
+else if (Model.Categories.Any())
+{
+    <nav class="commerce-collections" aria-label="หมวดหมู่สินค้า">
+        @foreach (var category in Model.Categories)
+        {
+            <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@category.CategoryId"><span>EXPLORE COLLECTION</span><strong>@category.CategoryName</strong><b aria-hidden="true">↗</b></a>
+        }
+    </nav>
+}

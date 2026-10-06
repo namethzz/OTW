@@ -167,14 +167,16 @@
 
     <!-- Greeting -->
     <div class="db-greeting">
-        <h1 class="db-greeting-title">
-            สวัสดี, @Context.Session.GetString("FullName")! 👋
-        </h1>
+        <h2 class="db-greeting-title">
+            สวัสดี, @Context.Session.GetString("FullName")
+        </h2>
         <p class="db-greeting-sub">
-            ภาพรวมร้านค้าวันนี้ —
+            ภาพรวมร้านค้า —
             <span class="db-greeting-time">@DateTime.Now.ToString("dddd dd MMMM yyyy")</span>
         </p>
     </div>
+
+    @await Html.PartialAsync("~/Views/Shared/Components/UI/_CommerceHero.cshtml", new Project.ViewModels.CommerceHeroViewModel { IsAdmin = true })
 
     <!-- Alert bar: pending returns -->
     @if (ViewBag.PendingReturns > 0)

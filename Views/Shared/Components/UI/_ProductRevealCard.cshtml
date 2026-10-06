@@ -1,0 +1,50 @@
+@model Project.ViewModels.ProductRevealCardViewModel
+@{ var p = Model.Product; }
+<article class="product-reveal-card" data-name="@p.ProductName.ToLower()" data-status="@(p.Status == 1 ? 1 : 0)" data-stock="@(p.Stock < 10 ? "low" : "ok")">
+    <div class="reveal-image">
+        @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
+        {
+            <img src="@p.ImageUrl" alt="@p.ProductName" loading="lazy" />
+        }
+        else
+        {
+            <span class="reveal-placeholder">OTW<span>ยังไม่มีรูปสินค้า</span></span>
+        }
+        <span class="reveal-tag">@(p.Category?.CategoryName ?? "อาหารเสริม")</span>
+        @if (Model.IsAdmin || p.Stock <= 0)
+        {
+            <span class="reveal-status">@(p.Status != 1 ? "ปิดขาย" : p.Stock <= 0 ? "สินค้าหมด" : "เปิดขาย")</span>
+        }
+    </div>
+    <div class="reveal-body">
+        <div class="reveal-meta">@(Model.IsAdmin ? $"PRODUCT / #{p.ProductId}" : "OTW / WELLNESS COLLECTION")</div>
+        <h3>@p.ProductName</h3>
+        @if (Model.ReviewCount > 0 && Model.Rating.HasValue)
+        {
+            <p class="reveal-rating">★ @Model.Rating.Value.ToString("0.0") <span>(@Model.ReviewCount รีวิว)</span></p>
+        }
+        <div class="reveal-price"><strong>฿@p.Price.ToString("N2")</strong><span class="@(p.Stock < 10 ? "reveal-low" : "")">คงเหลือ @p.Stock</span></div>
+        <details class="reveal-details">
+            <summary>รายละเอียดสินค้า <span aria-hidden="true">+</span></summary>
+            <p>@(string.IsNullOrWhiteSpace(p.Description) ? "ยังไม่มีรายละเอียดสินค้า" : p.Description)</p>
+        </details>
+        <div class="reveal-actions">
+            @if (Model.IsAdmin)
+            {
+                <a class="commerce-button" asp-controller="Admin" asp-action="EditProduct" asp-route-id="@p.ProductId">แก้ไขสินค้า <span aria-hidden="true">↗</span></a>
+            }
+            else
+            {
+                <form asp-controller="Shop" asp-action="AddToCart" method="post">
+                    <input type="hidden" name="productId" value="@p.ProductId" />
+                    <input type="hidden" name="quantity" value="1" />
+                    <button class="commerce-button" type="submit" disabled="@(p.Stock <= 0 || p.Status != 1)">@(p.Stock <= 0 ? "สินค้าหมด" : "เพิ่มลงตะกร้า") <span aria-hidden="true">+</span></button>
+                </form>
+            }
+            @if (p.Status == 1)
+            {
+                <a class="reveal-detail-link" asp-controller="Shop" asp-action="Detail" asp-route-id="@p.ProductId">ดูหน้าสินค้า <span aria-hidden="true">↗</span></a>
+            }
+        </div>
+    </div>
+</article>

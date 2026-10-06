@@ -34,6 +34,10 @@ public class HomeController : Controller
             .Take(6)
             .ToList();
 
+        // Ratings include every review for the featured products, not only the six testimonials.
+        var featuredIds = products.Select(p => p.ProductId).ToList();
+        ViewBag.ProductReviews = _db.Reviews.AsNoTracking()
+            .Where(r => featuredIds.Contains(r.ProductId)).ToList();
         ViewBag.Products   = products;
         ViewBag.Categories = categories;
         ViewBag.Reviews    = reviews;

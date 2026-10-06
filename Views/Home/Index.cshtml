@@ -2,36 +2,13 @@
     ViewData["Title"] = "Home Page";
     var products   = ViewBag.Products   as List<Project.Models.Db.Product>  ?? new();
     var categories = ViewBag.Categories as List<Project.Models.Db.Category> ?? new();
+    var ratingReviews = ViewBag.ProductReviews as List<Project.Models.Db.Review> ?? new();
     var reviews    = ViewBag.Reviews    as List<Project.Models.Db.Review>   ?? new();
 }
 
-<!-- ══ HERO ══ -->
-<section class="bg-light py-5 border-top border-bottom mt-5">
-    <div class="container px-4 px-md-5">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h1 class="display-4 fw-bold">
-                    อาหารเสริมแท้ 100%<br>
-                    เพื่อสุขภาพที่ดีกว่า
-                </h1>
-                <p class="text-muted">โปรตีน วิตามิน และผลิตภัณฑ์ดูแลสุขภาพคุณภาพสูง</p>
-                <div class="mt-4">
-                    <a asp-controller="Shop" asp-action="Index" class="btn btn-dark btn-lg me-2">Shop Now</a>
-                    <a href="#products" class="btn btn-outline-dark btn-lg">ดูสินค้าทั้งหมด</a>
-                </div>
-                <div class="d-flex gap-4 mt-5">
-                    <div><h4>10,000+</h4><small>ลูกค้าพึงพอใจ</small></div>
-                    <div><h4>20+</h4><small>แบรนด์ชั้นนำ</small></div>
-                    <div><h4>Fast Delivery</h4><small>จัดส่งทั่วประเทศ</small></div>
-                </div>
-            </div>
-            <div class="col-md-6 text-center">
-                <img src="~/img/pexels-pavel-danilyuk-6339725.jpg"
-                     class="img-fluid rounded shadow" style="max-height:420px;object-fit:cover" />
-            </div>
-        </div>
-    </div>
-</section>
+<div class="container commerce-storefront">
+    @await Html.PartialAsync("~/Views/Shared/Components/UI/_CommerceHero.cshtml", new Project.ViewModels.CommerceHeroViewModel { Categories = categories })
+</div>
 
 <!-- ══ TRUST BAR ══ -->
 <section class="bg-white py-4 border-bottom">
@@ -66,40 +43,6 @@
     </div>
 </section>
 
-<!-- ══ หมวดหมู่ ══ -->
-<section class="container my-5">
-    <h2 class="text-center fw-bold mb-4">หมวดหมู่สินค้า</h2>
-    <div class="row g-4 justify-content-center">
-        @foreach (var cat in categories)
-        {
-            <div class="col-6 col-md-3">
-                <a asp-controller="Shop" asp-action="Index"
-                   asp-route-categoryId="@cat.CategoryId"
-                   class="text-decoration-none">
-                    <div class="card border-0 shadow-sm text-center p-4 h-100 category-card">
-                        <div class="mb-3">
-                            @if (cat.CategoryName.Contains("พืช"))
-                            {
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto">
-                                    <path d="M12 22V12"/><path d="M5 3a7 7 0 0 0 7 7 7 7 0 0 0 7-7"/>
-                                </svg>
-                            }
-                            else
-                            {
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                </svg>
-                            }
-                        </div>
-                        <h6 class="fw-bold mb-1">@cat.CategoryName</h6>
-                        <small class="text-muted">@cat.Description</small>
-                    </div>
-                </a>
-            </div>
-        }
-    </div>
-</section>
-
 <!-- ══ สินค้าแนะนำ ══ -->
 <section class="container my-5" id="products">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -119,82 +62,9 @@
         <div class="row g-4">
             @foreach (var p in products)
             {
+                var productReviews = ratingReviews.Where(rv => rv.ProductId == p.ProductId).ToList();
                 <div class="col-sm-6 col-lg-3">
-                    <div class="card border-0 shadow-sm h-100 product-card">
-                        <a asp-controller="Shop" asp-action="Detail" asp-route-id="@p.ProductId">
-                            <div style="height:200px;background:#f8f8f8;overflow:hidden" class="position-relative">
-                                @if (!string.IsNullOrEmpty(p.ImageUrl))
-                                {
-                                    <img src="@p.ImageUrl" class="w-100 h-100"
-                                         style="object-fit:contain;padding:10px" alt="@p.ProductName" />
-                                }
-                                else
-                                {
-                                    <div class="w-100 h-100 d-flex align-items-center justify-content-center">
-                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                            <polyline points="21 15 16 10 5 21"/>
-                                        </svg>
-                                    </div>
-                                }
-                                <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75">
-                                    @p.Category?.CategoryName
-                                </span>
-                            </div>
-                        </a>
-                        <div class="card-body d-flex flex-column">
-                            <a asp-controller="Shop" asp-action="Detail" asp-route-id="@p.ProductId"
-                               class="text-decoration-none text-dark">
-                                <h6 class="fw-semibold mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-                                    @p.ProductName
-                                </h6>
-                            </a>
-                            @{
-                                var productReviews = (ViewBag.Reviews as List<Project.Models.Db.Review> ?? new())
-                                    .Where(r => r.ProductId == p.ProductId).ToList();
-                                var avgRating = productReviews.Any() ? productReviews.Average(r => r.Rating) : 0;
-                                var reviewCount = productReviews.Count;
-                            }
-                            <div class="d-flex align-items-center gap-1 mb-2">
-                                @for (int s = 1; s <= 5; s++)
-                                {
-                                    <svg width="12" height="12" viewBox="0 0 24 24"
-                                         fill="@(s <= Math.Round(avgRating) ? "#F5A623" : "none")"
-                                         stroke="#F5A623" stroke-width="1.5"
-                                         stroke-linecap="round" stroke-linejoin="round">
-                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                                    </svg>
-                                }
-                                @if (reviewCount > 0)
-                                {
-                                    <small class="text-muted ms-1">(@reviewCount)</small>
-                                }
-                                else
-                                {
-                                    <small class="text-muted ms-1">ยังไม่มีรีวิว</small>
-                                }
-                            </div>
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fs-6 fw-bold">฿@p.Price.ToString("N0")</span>
-                                    <small class="text-muted">เหลือ @p.Stock</small>
-                                </div>
-                                <form asp-controller="Shop" asp-action="AddToCart" method="post">
-                                    <input type="hidden" name="productId" value="@p.ProductId" />
-                                    <input type="hidden" name="quantity" value="1" />
-                                    <button type="submit" class="btn btn-dark w-100 btn-sm"
-                                            @(p.Stock == 0 ? "disabled" : "")>
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle">
-                                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                                        </svg>
-                                        @(p.Stock == 0 ? "สินค้าหมด" : "เพิ่มลงตะกร้า")
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                    @await Html.PartialAsync("~/Views/Shared/Components/UI/_ProductRevealCard.cshtml", new Project.ViewModels.ProductRevealCardViewModel { Product = p, ReviewCount = productReviews.Count, Rating = productReviews.Any() ? productReviews.Average(rv => rv.Rating) : (double?)null })
                 </div>
             }
         </div>

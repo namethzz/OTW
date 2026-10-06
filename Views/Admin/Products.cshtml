@@ -138,23 +138,34 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input type="text" id="pdSearch" placeholder="ค้นหาชื่อสินค้า..." oninput="filterProducts()" />
+            <input type="text" aria-label="ค้นหาชื่อสินค้า" id="pdSearch" placeholder="ค้นหาชื่อสินค้า..." oninput="filterProducts()" />
         </div>
-        <select class="pd-filter" id="pdStatus" onchange="filterProducts()">
+        <select class="pd-filter" aria-label="กรองสถานะการขาย" id="pdStatus" onchange="filterProducts()">
             <option value="">ทุกสถานะ</option>
             <option value="1">เปิดขาย</option>
             <option value="0">ปิดขาย</option>
         </select>
-        <select class="pd-filter" id="pdStock" onchange="filterProducts()">
+        <select class="pd-filter" aria-label="กรองสต็อกสินค้า" id="pdStock" onchange="filterProducts()">
             <option value="">ทุก Stock</option>
             <option value="low">Stock น้อย (&lt;10)</option>
             <option value="ok">Stock ปกติ</option>
         </select>
-        <div class="pd-count">แสดง <strong id="pdCount">@Model.Count()</strong> รายการ</div>
+        <div class="reveal-view-tools" role="group" aria-label="มุมมองสินค้า">
+            <button type="button" data-product-view="table" aria-pressed="true">ตาราง</button>
+            <button type="button" data-product-view="grid" aria-pressed="false">การ์ด</button>
+        </div>
+        <div class="pd-count" aria-live="polite">แสดง <strong id="pdCount">@Model.Count()</strong> รายการ</div>
     </div>
 
+    <div id="pdGrid" class="product-reveal-grid" hidden>
+        @foreach (var p in Model)
+        {
+            @await Html.PartialAsync("~/Views/Shared/Components/UI/_ProductRevealCard.cshtml", new Project.ViewModels.ProductRevealCardViewModel { Product = p, IsAdmin = true })
+        }
+    </div>
+    <p id="pdEmpty" class="reveal-empty" role="status" hidden>ไม่พบสินค้า ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p>
     <!-- Table -->
-    <div class="pd-card">
+    <div class="pd-card" id="pdTableView">
         <table class="pd-table" id="pdTable">
             <thead>
                 <tr>
@@ -174,7 +185,7 @@
                     var stockColor = p.Stock < 5 ? "#e11d48" : p.Stock < 10 ? "#f59e0b" : "#22c55e";
 
                     <tr data-name="@p.ProductName.ToLower()"
-                        data-status="@p.Status"
+                        data-status="@(p.Status == 1 ? 1 : 0)"
                         data-stock="@(p.Stock < 10 ? "low" : "ok")">
 
                         <!-- สินค้า -->
@@ -252,7 +263,7 @@
                                     <i class="ti ti-edit" style="font-size:14px;"></i>
                                 </a>
                                 <button class="pd-del-btn" title="ลบ"
-                                        onclick="confirmDelete(@p.ProductId, '@p.ProductName.Replace("'", "\\'")') ">
+                                        data-delete-id="@p.ProductId" data-delete-name="@p.ProductName">
                                     <i class="ti ti-trash" style="font-size:14px;"></i>
                                 </button>
                             </div>
@@ -306,19 +317,35 @@
 @section Scripts {
 <script>
 function filterProducts() {
-    const q      = document.getElementById('pdSearch').value.toLowerCase();
+    const q = document.getElementById('pdSearch').value.trim().toLowerCase();
     const status = document.getElementById('pdStatus').value;
-    const stock  = document.getElementById('pdStock').value;
+    const stock = document.getElementById('pdStock').value;
     let n = 0;
+    function matches(item) {
+        return (!q || (item.dataset.name || '').includes(q))
+            && (!status || item.dataset.status === status)
+            && (!stock || item.dataset.stock === stock);
+    }
     document.querySelectorAll('#pdTable tbody tr').forEach(row => {
-        const show = (!q      || (row.dataset.name  || '').includes(q))
-                  && (!status || row.dataset.status === status)
-                  && (!stock  || row.dataset.stock  === stock);
-        row.style.display = show ? '' : 'none';
-        if (show) n++;
+        row.hidden = !matches(row);
+        if (!row.hidden) n++;
     });
+    document.querySelectorAll('#pdGrid .product-reveal-card').forEach(card => { card.hidden = !matches(card); });
     document.getElementById('pdCount').textContent = n;
+    document.getElementById('pdEmpty').hidden = n !== 0;
 }
+document.querySelectorAll('[data-product-view]').forEach(button => {
+    button.addEventListener('click', () => {
+        const grid = button.dataset.productView === 'grid';
+        document.getElementById('pdGrid').hidden = !grid;
+        document.getElementById('pdTableView').hidden = grid;
+        document.querySelectorAll('[data-product-view]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+        filterProducts();
+    });
+});
+document.querySelectorAll('[data-delete-id]').forEach(button => {
+    button.addEventListener('click', () => confirmDelete(button.dataset.deleteId, button.dataset.deleteName));
+});
 
 function confirmDelete(id, name) {
     document.getElementById('pdDelName').textContent = name;
