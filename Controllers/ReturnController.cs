@@ -21,6 +21,11 @@ namespace Project.Controllers
         private int GetUserId() =>
             HttpContext.Session.GetInt32("UserId")!.Value;
 
+        private const int ReturnWindowDays = 7;
+
+        private static DateTime ReturnDeadline(Order order) =>
+            (order.OrderDate ?? DateTime.Now).AddDays(ReturnWindowDays);
+
         [HttpGet]
         public IActionResult Create(int orderId)
         {
@@ -44,6 +49,12 @@ namespace Project.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
+            if (DateTime.Now > ReturnDeadline(order))
+            {
+                TempData["ReturnError"] = $"เกินระยะเวลาขอคืน/เปลี่ยนสินค้า ({ReturnWindowDays} วัน) แล้ว";
+                return RedirectToAction("Index", "Home");
+            }
+
             var existingReturn = _db.Returns
                 .FirstOrDefault(r => r.OrderId == orderId && r.Status == 0);
 
@@ -53,9 +64,8 @@ namespace Project.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            var deliveredDate = order.OrderDate ?? DateTime.Now;
             ViewBag.Order = order;
-            ViewBag.DeadlineDate = deliveredDate.AddDays(7).ToString("d MMM yyyy");
+            ViewBag.DeadlineDate = ReturnDeadline(order).ToString("d MMM yyyy");
 
             return View();
         }
@@ -82,6 +92,12 @@ namespace Project.Controllers
             if (order.OrderStatus != 3)
             {
                 TempData["ReturnError"] = "สามารถขอคืนเงินหรือเปลี่ยนสินค้าได้เฉพาะออเดอร์ที่จัดส่งสำเร็จแล้วเท่านั้น";
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (DateTime.Now > ReturnDeadline(order))
+            {
+                TempData["ReturnError"] = $"เกินระยะเวลาขอคืน/เปลี่ยนสินค้า ({ReturnWindowDays} วัน) แล้ว";
                 return RedirectToAction("Index", "Home");
             }
 
@@ -149,20 +165,7 @@ namespace Project.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        public IActionResult History()
-        {
-            if (!IsLoggedIn())
-                return RedirectToAction("Login", "Account");
-
-            var userId = GetUserId();
-
-            var returns = _db.Returns
-                .Where(r => r.UserId == userId)
-                .Include(r => r.Order)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToList();
-
-            return View(returns);
-        }
+        // หน้าประวัติคำขอคืนอยู่ที่ Account/MyReturns
+        public IActionResult History() => RedirectToAction("MyReturns", "Account");
     }
 }

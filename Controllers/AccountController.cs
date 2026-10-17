@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Project.Helpers;
 using Project.Models.Db;
 using Project.ViewModels;
 
@@ -74,12 +75,12 @@ namespace Project.Controllers
             var user = new User
             {
                 Username = model.Email,
-                Password = model.Password,
                 FullName = model.Name,
                 Email = model.Email,
                 Role = 2,
                 CreatedAt = DateTime.Now
             };
+            user.Password = PasswordHelper.Hash(user, model.Password);
 
             _context.Users.Add(user);
             _context.SaveChanges();
@@ -107,14 +108,19 @@ namespace Project.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = _context.Users
-                .FirstOrDefault(u => u.Email == model.Email
-                                  && u.Password == model.Password);
+            var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
 
-            if (user == null)
+            if (user == null || !PasswordHelper.Verify(user, model.Password, out var needsRehash))
             {
                 TempData["LoginError"] = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
                 return View(model);
+            }
+
+            // รหัสผ่านเดิมที่ยังเป็น plain text จะถูก hash ใหม่ตอน login สำเร็จ
+            if (needsRehash)
+            {
+                user.Password = PasswordHelper.Hash(user, model.Password);
+                _context.SaveChanges();
             }
 
             HttpContext.Session.SetInt32("UserId", user.UserId);
@@ -194,14 +200,6 @@ namespace Project.Controllers
             ViewBag.RelatedOrders = relatedOrders;
 
             return View("MyReturns");
-        }
-
-        // ==================== USER LIST (Admin only) ====================
-
-        public IActionResult UserList()
-        {
-            var users = _context.Users.ToList();
-            return View(users);
         }
     }
 }

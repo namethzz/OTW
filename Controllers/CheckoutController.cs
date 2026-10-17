@@ -81,6 +81,28 @@ namespace Project.Controllers
                 return RedirectToAction("Cart", "Shop");
 
             var userId = HttpContext.Session.GetInt32("UserId")!.Value;
+
+            // ── ใช้ราคาปัจจุบันจาก DB และตรวจว่าสินค้ายังเปิดขาย / สต็อกพอ ──
+            var productIds = cart.Select(c => c.ProductId).ToList();
+            var products = _db.Products
+                .Where(p => productIds.Contains(p.ProductId))
+                .ToDictionary(p => p.ProductId);
+
+            foreach (var item in cart)
+            {
+                if (!products.TryGetValue(item.ProductId, out var product) || product.Status != 1)
+                {
+                    TempData["CartError"] = $"{item.ProductName} ไม่มีจำหน่ายแล้ว กรุณาลบออกจากตะกร้า";
+                    return RedirectToAction("Cart", "Shop");
+                }
+                if (item.Quantity < 1 || item.Quantity > product.Stock)
+                {
+                    TempData["CartError"] = $"{item.ProductName} เหลือในสต็อกเพียง {product.Stock} ชิ้น";
+                    return RedirectToAction("Cart", "Shop");
+                }
+                item.Price = product.Price;
+            }
+
             var subtotal = cart.Sum(c => c.Subtotal);
             var shipping = subtotal >= 1500 ? 0m : 50m;
 
@@ -140,6 +162,9 @@ namespace Project.Controllers
                 OrderDate = DateTime.Now
             };
 
+            // ทำทั้งหมดใน transaction เดียว ถ้าสต็อกหรือโควต้าโปรไม่พอระหว่างทางจะ rollback ทั้งออเดอร์
+            using var tx = _db.Database.BeginTransaction();
+
             _db.Orders.Add(order);
             _db.SaveChanges(); // ต้อง Save ก่อนเพื่อได้ OrderId
 
@@ -154,16 +179,30 @@ namespace Project.Controllers
                     Price = item.Price
                 });
 
-                var product = _db.Products.Find(item.ProductId);
-                if (product != null)
-                    product.Stock = Math.Max(0, product.Stock - item.Quantity);
+                // ลดสต็อกแบบมีเงื่อนไขใน SQL เดียว กันขายเกินเมื่อมีคนสั่งพร้อมกัน
+                var updated = _db.Products
+                    .Where(p => p.ProductId == item.ProductId && p.Stock >= item.Quantity)
+                    .ExecuteUpdate(s => s.SetProperty(p => p.Stock, p => p.Stock - item.Quantity));
+
+                if (updated == 0)
+                {
+                    tx.Rollback();
+                    TempData["CartError"] = $"{item.ProductName} สต็อกไม่พอแล้ว กรุณาปรับจำนวนในตะกร้า";
+                    return RedirectToAction("Cart", "Shop");
+                }
             }
 
             // ── เพิ่ม UsageCount ของโปรโมชั่น ──
-            if (usedPromo != null)
-                PromotionValidator.IncrementUsage(_db, usedPromo.PromotionId);
+            if (usedPromo != null && !PromotionValidator.TryIncrementUsage(_db, usedPromo.PromotionId))
+            {
+                tx.Rollback();
+                TempData["PromoError"] = PromotionValidator.GetErrorMessage(
+                    PromotionValidator.ValidateResult.TotalLimitReached, usedPromo);
+                return RedirectToAction("Index");
+            }
 
             _db.SaveChanges();
+            tx.Commit();
 
             TempData["OrderAddress"] = fullAddress;
             TempData["OrderPhone"] = phone;

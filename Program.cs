@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Pomelo.EntityFrameworkCore.MySql;
 using Microsoft.EntityFrameworkCore;
 using Project.Models.Db; 
@@ -5,7 +6,9 @@ using Project.Models.Db;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+// ตรวจ antiforgery token ทุก POST/PUT/DELETE เพื่อกัน CSRF
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 
 builder.Services.AddDbContext<Csi402dbbContext>(options =>
     options.UseMySql(

@@ -18,6 +18,33 @@ namespace Project.Controllers
             return HttpContext.Session.GetInt32("Role") == 1;
         }
 
+        private static readonly string[] AllowedImageExt = { ".jpg", ".jpeg", ".png", ".webp" };
+        private const long MaxImageBytes = 5 * 1024 * 1024;
+
+        // คืน path รูปที่บันทึกแล้ว หรือ null พร้อม error ถ้าไฟล์ไม่ผ่านการตรวจ
+        private static string? SaveProductImage(IFormFile imageFile, out string? error)
+        {
+            error = null;
+            var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!AllowedImageExt.Contains(ext))
+            {
+                error = "รองรับเฉพาะไฟล์ JPG, PNG, WEBP เท่านั้น";
+                return null;
+            }
+            if (imageFile.Length > MaxImageBytes)
+            {
+                error = "ขนาดไฟล์ต้องไม่เกิน 5 MB";
+                return null;
+            }
+
+            var fileName = Guid.NewGuid() + ext;
+            var savePath = Path.Combine("wwwroot/images/products", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
+            using var stream = System.IO.File.Create(savePath);
+            imageFile.CopyTo(stream);
+            return "/images/products/" + fileName;
+        }
+
         // ══════════════════════════════════════════
         //  DASHBOARD
         // ══════════════════════════════════════════
@@ -79,12 +106,14 @@ namespace Project.Controllers
 
             if (imageFile != null && imageFile.Length > 0)
             {
-                var fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
-                var savePath = Path.Combine("wwwroot/images/products", fileName);
-                Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-                using var stream = System.IO.File.Create(savePath);
-                imageFile.CopyTo(stream);
-                model.ImageUrl = "/images/products/" + fileName;
+                var imageUrl = SaveProductImage(imageFile, out var error);
+                if (imageUrl == null)
+                {
+                    ModelState.AddModelError("ProductName", error!);
+                    ViewBag.Categories = _db.Categories.ToList();
+                    return View(model);
+                }
+                model.ImageUrl = imageUrl;
             }
 
             model.CreatedAt = DateTime.Now;
@@ -115,28 +144,33 @@ namespace Project.Controllers
             var product = _db.Products.Find(model.ProductId);
             if (product == null) return NotFound();
 
+            string? newImageUrl = null;
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                newImageUrl = SaveProductImage(imageFile, out var error);
+                if (newImageUrl == null)
+                {
+                    ModelState.AddModelError("ProductName", error!);
+                    ViewBag.Categories = _db.Categories.ToList();
+                    return View(model);
+                }
+            }
+
             product.ProductName = model.ProductName;
             product.CategoryId = model.CategoryId;
             product.Price = model.Price;
             product.Stock = model.Stock;
             product.Description = model.Description;
             product.Status = model.Status;
-
-            if (imageFile != null && imageFile.Length > 0)
-            {
-                var fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
-                var savePath = Path.Combine("wwwroot/images/products", fileName);
-                Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-                using var stream = System.IO.File.Create(savePath);
-                imageFile.CopyTo(stream);
-                product.ImageUrl = "/images/products/" + fileName;
-            }
+            if (newImageUrl != null)
+                product.ImageUrl = newImageUrl;
 
             _db.SaveChanges();
             TempData["Success"] = "แก้ไขสินค้าเรียบร้อยแล้ว";
             return RedirectToAction("Products");
         }
 
+        [HttpPost]
         public IActionResult DeleteProduct(int id)
         {
             if (!IsAdmin()) return RedirectToAction("Login", "Account");
@@ -202,6 +236,9 @@ namespace Project.Controllers
         {
             if (!IsAdmin()) return RedirectToAction("Login", "Account");
 
+            // 1 = รอดำเนินการ, 2 = กำลังจัดส่ง, 3 = จัดส่งสำเร็จ, 4 = ยกเลิก
+            if (status < 1 || status > 4) return BadRequest();
+
             var order = _db.Orders.Find(orderId);
             if (order != null)
             {
@@ -235,6 +272,9 @@ namespace Project.Controllers
         public IActionResult ReviewReturn(int returnId, int status)
         {
             if (!IsAdmin()) return RedirectToAction("Login", "Account");
+
+            // 1 = อนุมัติ, 2 = ปฏิเสธ
+            if (status != 1 && status != 2) return BadRequest();
 
             var ret = _db.Returns
                 .Include(r => r.Order)
@@ -289,6 +329,7 @@ namespace Project.Controllers
             return RedirectToAction("Promotions");
         }
 
+        [HttpPost]
         public IActionResult DeletePromotion(int id)
         {
             if (!IsAdmin()) return RedirectToAction("Login", "Account");
@@ -337,6 +378,7 @@ namespace Project.Controllers
             return View(users);
         }
 
+        [HttpPost]
         public IActionResult DeleteUser(int id)
         {
             if (!IsAdmin()) return RedirectToAction("Login", "Account");

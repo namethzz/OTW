@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Project.Helpers;
 using Project.Models.Db;
 using Project.Models;
 
@@ -107,7 +108,7 @@ public class HomeController : Controller
         // เปลี่ยนรหัสผ่าน
         if (!string.IsNullOrWhiteSpace(newPassword))
         {
-            if (string.IsNullOrWhiteSpace(currentPassword) || user.Password != currentPassword)
+            if (string.IsNullOrWhiteSpace(currentPassword) || !PasswordHelper.Verify(user, currentPassword, out _))
             {
                 TempData["ProfileError"] = "รหัสผ่านปัจจุบันไม่ถูกต้อง";
                 return RedirectToAction("Profile");
@@ -117,7 +118,7 @@ public class HomeController : Controller
                 TempData["ProfileError"] = "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร";
                 return RedirectToAction("Profile");
             }
-            user.Password = newPassword;
+            user.Password = PasswordHelper.Hash(user, newPassword);
         }
 
         // อัปโหลดรูปโปรไฟล์
