@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Project.Helpers;
 using Project.Models.Db;
 
 namespace Project.Controllers
@@ -7,12 +8,12 @@ namespace Project.Controllers
     public class ReturnController : Controller
     {
         private readonly Csi402dbbContext _db;
-        private readonly IWebHostEnvironment _env;
+        private readonly UploadStorage _uploads;
 
-        public ReturnController(Csi402dbbContext db, IWebHostEnvironment env)
+        public ReturnController(Csi402dbbContext db, UploadStorage uploads)
         {
             _db = db;
-            _env = env;
+            _uploads = uploads;
         }
 
         private bool IsLoggedIn() =>
@@ -135,16 +136,7 @@ namespace Project.Controllers
                     return RedirectToAction("Create", new { orderId });
                 }
 
-                var uploadDir = Path.Combine(_env.WebRootPath, "uploads", "returns");
-                Directory.CreateDirectory(uploadDir);
-
-                var fileName = $"{Guid.NewGuid()}{ext}";
-                var filePath = Path.Combine(uploadDir, fileName);
-
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await image.CopyToAsync(stream);
-
-                imageUrl = $"/uploads/returns/{fileName}";
+                imageUrl = _uploads.Save(image, "returns", $"{Guid.NewGuid()}{ext}");
             }
 
             _db.Returns.Add(new Return

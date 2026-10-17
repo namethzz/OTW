@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Project.Helpers;
 using Project.Models.Db;
 
 namespace Project.Controllers
@@ -7,10 +8,12 @@ namespace Project.Controllers
     public class AdminController : Controller
     {
         private readonly Csi402dbbContext _db;
+        private readonly UploadStorage _uploads;
 
-        public AdminController(Csi402dbbContext db)
+        public AdminController(Csi402dbbContext db, UploadStorage uploads)
         {
             _db = db;
+            _uploads = uploads;
         }
 
         private bool IsAdmin()
@@ -22,7 +25,7 @@ namespace Project.Controllers
         private const long MaxImageBytes = 5 * 1024 * 1024;
 
         // คืน path รูปที่บันทึกแล้ว หรือ null พร้อม error ถ้าไฟล์ไม่ผ่านการตรวจ
-        private static string? SaveProductImage(IFormFile imageFile, out string? error)
+        private string? SaveProductImage(IFormFile imageFile, out string? error)
         {
             error = null;
             var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
@@ -37,12 +40,7 @@ namespace Project.Controllers
                 return null;
             }
 
-            var fileName = Guid.NewGuid() + ext;
-            var savePath = Path.Combine("wwwroot/images/products", fileName);
-            Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-            using var stream = System.IO.File.Create(savePath);
-            imageFile.CopyTo(stream);
-            return "/images/products/" + fileName;
+            return _uploads.Save(imageFile, "products", Guid.NewGuid() + ext);
         }
 
         // ══════════════════════════════════════════

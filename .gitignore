@@ -482,3 +482,8 @@ $RECYCLE.BIN/
 *.swp
 appsettings.json
 appsettings.Development.json
+
+# ไฟล์ที่ผู้ใช้อัปโหลด (ไม่เก็บใน git)
+wwwroot/uploads/
+wwwroot/images/products/
+wwwroot/images/avatars/

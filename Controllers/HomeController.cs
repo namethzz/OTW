@@ -10,10 +10,12 @@ namespace Project.Controllers;
 public class HomeController : Controller
 {
     private readonly Csi402dbbContext _db;
+    private readonly UploadStorage _uploads;
 
-    public HomeController(Csi402dbbContext db)
+    public HomeController(Csi402dbbContext db, UploadStorage uploads)
     {
         _db = db;
+        _uploads = uploads;
     }
 
     public IActionResult Index()
@@ -137,13 +139,8 @@ public class HomeController : Controller
                 return RedirectToAction("Profile");
             }
 
-            var uploadDir = Path.Combine("wwwroot", "images", "avatars");
-            Directory.CreateDirectory(uploadDir);
-            var fileName = $"avatar_{userId.Value}{ext}";
-            var savePath = Path.Combine(uploadDir, fileName);
-            using var stream = System.IO.File.Create(savePath);
-            avatarFile.CopyTo(stream);
-            user.ImageUrl = $"/images/avatars/{fileName}";
+            // ชื่อไฟล์ใหม่ทุกครั้ง เพื่อไม่ให้ browser แสดงรูปเก่าจาก cache
+            user.ImageUrl = _uploads.Save(avatarFile, "avatars", $"avatar_{userId.Value}_{Guid.NewGuid():N}{ext}");
         }
 
         _db.SaveChanges();
