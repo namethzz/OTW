@@ -368,9 +368,12 @@
                 </p>
                 <div class="d-flex gap-2 justify-content-center">
                     <button class="um-mc" data-bs-dismiss="modal">ยกเลิก</button>
-                    <a id="umDelBtn" href="#" class="um-md">
-                        <i class="ti ti-trash me-1"></i>ลบเลย
-                    </a>
+                    <form id="umDelForm" method="post" style="margin:0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="umDelBtn" class="um-md">
+                            <i class="ti ti-trash me-1"></i>ลบเลย
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -394,7 +397,7 @@ function filterUsers() {
 
 function confirmDelete(id, name) {
     document.getElementById('umDelName').textContent = name;
-    document.getElementById('umDelBtn').href = '/Admin/DeleteUser/' + id;
+    document.getElementById('umDelForm').action = '/Admin/DeleteUser/' + id;
     new bootstrap.Modal(document.getElementById('umDeleteModal')).show();
 }
 </script>

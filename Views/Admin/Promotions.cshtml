@@ -241,9 +241,12 @@
                 <p style="font-size:.75rem;color:#e11d48;margin:0 0 20px;">ถ้ามีออเดอร์ใช้อยู่แล้ว ระบบจะปิดใช้งานแทนการลบ</p>
                 <div style="display:flex;gap:10px;justify-content:center;">
                     <button class="pm-btn-cancel" data-bs-dismiss="modal">ยกเลิก</button>
-                    <a id="pmDelBtn" href="#" class="pm-btn-save" style="background:#e11d48;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-                        <i class="ti ti-trash"></i>ลบเลย
-                    </a>
+                    <form id="pmDelForm" method="post" style="margin:0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="pmDelBtn" class="pm-btn-save" style="background:#e11d48;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                            <i class="ti ti-trash"></i>ลบเลย
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -350,7 +353,7 @@ function fillPreset(name, code, discType, discVal, minOrder, userType, usageLimi
 }
 function confirmDelete(id, name) {
     document.getElementById('pmDelName').textContent = name;
-    document.getElementById('pmDelBtn').href = '/Admin/DeletePromotion/' + id;
+    document.getElementById('pmDelForm').action = '/Admin/DeletePromotion/' + id;
     new bootstrap.Modal(document.getElementById('pmDeleteModal')).show();
 }
 document.getElementById('promoCodeInput')?.addEventListener('input', function() {

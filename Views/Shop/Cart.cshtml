@@ -10,6 +10,14 @@
 
 <div class="container py-5">
 
+    @if (TempData["CartError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="ti ti-alert-circle me-2"></i>@TempData["CartError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <!-- Header -->
     <div class="d-flex align-items-center gap-3 mb-5">
         <div>

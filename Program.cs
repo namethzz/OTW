@@ -1,11 +1,16 @@
+using Microsoft.AspNetCore.Mvc;
 using Pomelo.EntityFrameworkCore.MySql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
+using Project.Helpers;
 using Project.Models.Db; 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+// ตรวจ antiforgery token ทุก POST/PUT/DELETE เพื่อกัน CSRF
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 
 builder.Services.AddDbContext<Csi402dbbContext>(options =>
     options.UseMySql(
@@ -15,6 +20,12 @@ builder.Services.AddDbContext<Csi402dbbContext>(options =>
         )
     )
 );
+
+// ที่เก็บไฟล์อัปโหลด: ตั้ง Uploads__Path ให้ชี้ไป volume บน server เพื่อไม่ให้ไฟล์หายตอน deploy
+var uploadStorage = new UploadStorage(
+    builder.Configuration["Uploads:Path"]
+    ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads"));
+builder.Services.AddSingleton(uploadStorage);
 
 // ✅ เพิ่ม Session
 builder.Services.AddSession(options =>
@@ -34,6 +45,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// ไฟล์อัปโหลดถูกสร้างตอนรันไทม์ จึงไม่อยู่ใน manifest ของ MapStaticAssets ต้องเสิร์ฟแยก
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadStorage.RootPath),
+    RequestPath = UploadStorage.RequestPath
+});
+// รูปที่อัปโหลดไว้ก่อนหน้านี้ใน wwwroot/images/products และ wwwroot/images/avatars
+app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseAuthorization();

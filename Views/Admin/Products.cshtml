@@ -305,9 +305,12 @@
                 </p>
                 <div style="display:flex;gap:10px;justify-content:center;">
                     <button class="pd-mc" data-bs-dismiss="modal">ยกเลิก</button>
-                    <a id="pdDelBtn" href="#" class="pd-md">
-                        <i class="ti ti-trash"></i>ลบเลย
-                    </a>
+                    <form id="pdDelForm" method="post" style="margin:0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="pdDelBtn" class="pd-md">
+                            <i class="ti ti-trash"></i>ลบเลย
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -349,7 +352,7 @@ document.querySelectorAll('[data-delete-id]').forEach(button => {
 
 function confirmDelete(id, name) {
     document.getElementById('pdDelName').textContent = name;
-    document.getElementById('pdDelBtn').href = '/Admin/DeleteProduct/' + id;
+    document.getElementById('pdDelForm').action = '/Admin/DeleteProduct/' + id;
     new bootstrap.Modal(document.getElementById('pdDeleteModal')).show();
 }
 </script>

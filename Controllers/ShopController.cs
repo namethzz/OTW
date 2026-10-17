@@ -105,10 +105,23 @@ namespace Project.Controllers
         public IActionResult AddToCart(int productId, int quantity = 1)
         {
             var product = _db.Products.Find(productId);
-            if (product == null) return NotFound();
+            if (product == null || product.Status != 1) return NotFound();
+
+            if (quantity < 1)
+                return RedirectToAction("Index");
 
             var cart = GetCart();
             var item = cart.FirstOrDefault(c => c.ProductId == productId);
+
+            // ห้ามใส่ตะกร้าเกินจำนวนสต็อกที่มี
+            var inCart = item?.Quantity ?? 0;
+            if (inCart + quantity > product.Stock)
+            {
+                TempData["CartError"] = product.Stock - inCart > 0
+                    ? $"{product.ProductName} เหลือในสต็อกเพียง {product.Stock} ชิ้น"
+                    : $"{product.ProductName} สินค้าหมด หรือมีในตะกร้าครบจำนวนสต็อกแล้ว";
+                return RedirectToAction("Index");
+            }
 
             if (item != null)
                 item.Quantity += quantity;
@@ -138,8 +151,21 @@ namespace Project.Controllers
 
             if (item != null)
             {
-                if (quantity <= 0) cart.Remove(item);
-                else item.Quantity = quantity;
+                if (quantity <= 0)
+                {
+                    cart.Remove(item);
+                }
+                else
+                {
+                    var stock = _db.Products.Find(productId)?.Stock ?? 0;
+                    if (quantity > stock)
+                    {
+                        quantity = stock;
+                        TempData["CartError"] = $"{item.ProductName} เหลือในสต็อกเพียง {stock} ชิ้น";
+                    }
+                    if (quantity <= 0) cart.Remove(item);
+                    else item.Quantity = quantity;
+                }
             }
 
             SaveCart(cart);

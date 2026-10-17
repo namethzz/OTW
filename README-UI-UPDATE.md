@@ -68,3 +68,19 @@ dotnet run --launch-profile http
 หลังรันบนเครื่อง ให้ตรวจ Home, Shop, Admin Dashboard, Products (ตาราง/การ์ด), เพิ่ม/แก้สินค้า, Orders, Returns, Promotions และ Users ที่ desktop และมือถือ พร้อมลองตะกร้าและฟอร์มจริงก่อนนำไปใช้งาน
 
 ชุดนี้เป็นการปรับ UI ไม่ใช่การตรวจความปลอดภัยหรือแก้ระบบธุรกิจทั้งหมด
+
+## ไฟล์อัปโหลด (รูปสินค้า / รูปโปรไฟล์ / หลักฐานคืนสินค้า)
+
+ไฟล์ที่อัปโหลดไม่ถูกเก็บใน git และเสิร์ฟที่ URL `/uploads/...`
+
+- **รันในเครื่อง:** เก็บที่ `wwwroot/uploads` เหมือนเดิม ไม่ต้องตั้งค่าอะไร
+- **Deploy ด้วย Docker (Railway / Render):** Dockerfile ตั้ง `Uploads__Path=/data/uploads` ไว้แล้ว
+  ให้สร้าง volume / persistent disk แล้ว mount ที่ `/data` ไม่อย่างนั้นไฟล์จะหายทุกครั้งที่ deploy ใหม่
+- ย้ายไปเก็บที่อื่นได้ด้วยการตั้ง environment variable `Uploads__Path`
+
+รูปหลักฐานคืนสินค้าเดิมที่เคยอยู่ใน git ยังกู้คืนได้จาก history:
+
+```bat
+git checkout 26798c7 -- wwwroot/uploads
+git restore --staged wwwroot/uploads
+```

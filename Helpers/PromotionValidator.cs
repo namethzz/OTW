@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Project.Models.Db;
 
 namespace Project.Helpers
@@ -74,10 +75,13 @@ namespace Project.Helpers
                 : Math.Min(promo.DiscountValue, subtotal);
         }
 
-        public static void IncrementUsage(Csi402dbbContext db, int promotionId)
+        // เพิ่ม UsageCount แบบ atomic; คืน false ถ้าโปรถูกใช้ครบโควต้าไปแล้ว
+        public static bool TryIncrementUsage(Csi402dbbContext db, int promotionId)
         {
-            var promo = db.Promotions.Find(promotionId);
-            if (promo != null) promo.UsageCount++;
+            return db.Promotions
+                .Where(p => p.PromotionId == promotionId
+                         && (p.TotalUsageLimit == null || p.UsageCount < p.TotalUsageLimit))
+                .ExecuteUpdate(s => s.SetProperty(p => p.UsageCount, p => p.UsageCount + 1)) == 1;
         }
 
         public static string GetErrorMessage(ValidateResult result, Promotion? promo = null)

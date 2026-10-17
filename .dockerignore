@@ -4,3 +4,6 @@ obj/
 .git/
 appsettings.json
 appsettings.Development.json
+wwwroot/uploads/
+wwwroot/images/products/
+wwwroot/images/avatars/
