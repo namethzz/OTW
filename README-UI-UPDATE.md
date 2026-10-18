@@ -1,4 +1,4 @@
-# OTW — Minimal Premium UI
+# OTW: Minimal Premium UI
 
 ปรับหน้าร้านและ Admin โดยดัดแปลง CommerceHero กับ ProductRevealCard ที่แนบมาให้ทำงานกับ ASP.NET Core MVC เดิม
 
@@ -61,7 +61,7 @@ dotnet run --launch-profile http
 
 - ผ่าน JavaScript syntax check
 - ผ่านการทดสอบ logic ด้วย DOM จำลอง: ค้นหา, กรองสถานะร่วมกับสต็อก, สลับตาราง/การ์ด, ไม่พบผลลัพธ์, ย่อเมนู, เปิดเมนูมือถือ, inert/focus, Escape และเปลี่ยนขนาดหน้าจอ
-- ยังไม่ได้ build Razor/C# หรือรันกับฐานข้อมูลจริง เนื่องจากสภาพแวดล้อมแก้ไขไม่มี .NET SDK และ MySQL ของผู้ใช้
+- ตอนทำชุดนี้ยังไม่ได้ build Razor/C# หรือรันกับฐานข้อมูลจริง เนื่องจากสภาพแวดล้อมแก้ไขไม่มี .NET SDK และ MySQL ของผู้ใช้ รอบทบทวนเดือนตุลาคม 2026 build ผ่านแล้ว (ดู [README.md](README.md))
 - ยังไม่ได้ตรวจ screenshot / layout ในเบราว์เซอร์จริง เพราะติดตั้ง Chromium ไม่สำเร็จ
 - ฟอนต์ Google, Bootstrap CDN และ Tabler CDN ยังต้องมีอินเทอร์เน็ตตามการใช้ CDN ของโปรเจกต์เดิม
 
